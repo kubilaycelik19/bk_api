@@ -5,7 +5,7 @@ from .serializers import UserSerializer
 from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 class UserViewSet(viewsets.ModelViewSet):
 
@@ -16,6 +16,18 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = CustomUser.objects.all() # Tüm kullanıcıları alır (Yöneteceği veriler)
     serializer_class = UserSerializer # Hangi serializer'ı kullanacağını belirtir
+
+    def get_permissions(self):
+        """
+        İşleme (action) göre izinleri ata.
+        """
+        if self.action == 'create':
+            # Eğer 'create' (POST) işlemi yapılıyorsa (yani YENİ KAYIT)
+            permission_classes = [AllowAny] # Herkese izin ver
+        else:
+            # Diğer tüm işlemler (Listele, Sil, Güncelle, Detay Görme)
+            permission_classes = [IsAdminUser] # Sadece Admin'e (Psikolog) izin ver
+        return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
 
