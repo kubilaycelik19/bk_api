@@ -12,7 +12,7 @@ class CustomUser(AbstractUser):
 
 
     USERNAME_FIELD = 'email' # Giriş için email kullanılır
-    REQUIRED_FIELDS = ['username'] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz)
+    REQUIRED_FIELDS = [] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz). Username zorunluluğu geçici olarak kaldırıldı.
 
     def __str__(self):
         return self.email
