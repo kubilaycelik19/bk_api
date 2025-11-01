@@ -26,7 +26,11 @@ class UserViewSet(viewsets.ModelViewSet):
         hashed_password = make_password(password)
 
         # Hashlenen şifreyi serializere koyarak kaydetme işlemi
-        serializer.save(password=hashed_password)
+        serializer.save(
+                password=hashed_password,
+                is_patient=True, 
+                is_staff=False
+            )
 
 @api_view(['GET']) # Sadece GET isteklerini kabul eden bir API view
 def get_self_details(request):
