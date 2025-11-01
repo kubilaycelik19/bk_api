@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import BaseUserManager
 
+# GÖREV 77: DEĞİŞİKLİĞİ ZORLA (DUMMY COMMENT)
 
 class CustomUserManager(BaseUserManager):
     """
