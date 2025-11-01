@@ -3,6 +3,9 @@ from rest_framework import viewsets
 from .models import CustomUser
 from .serializers import UserSerializer
 from django.contrib.auth.hashers import make_password
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 class UserViewSet(viewsets.ModelViewSet):
 
@@ -24,3 +27,14 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # Hashlenen şifreyi serializere koyarak kaydetme işlemi
         serializer.save(password=hashed_password)
+
+@api_view(['GET']) # Sadece GET isteklerini kabul eden bir API view
+def get_self_details(request):
+    """
+    Giriş yapmış kullanıcının (token'ı gönderenin)
+    kendi detaylarını döndürür.
+    """
+    user = request.user # Token'dan kullanıcıyı al
+    serializer = UserSerializer(user) # Tercümanı kullan
+    return Response(serializer.data) # JSON'ı döndür
+

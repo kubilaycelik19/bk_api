@@ -25,9 +25,10 @@ from rest_framework_simplejwt.views import ( # JWT ile ilgili view'ları import 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Bu adrese email/password token edince 'access' ve 'refresh' token'ları alınacak.
+    # Bu adrese email/password token edince 'access' ve 'refresh' token'ları alınacak. (Login)
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # Token alma endpoint'i
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), # Token yenileme endpoint'i
+    # Giriş yapılan bilgilere göre yetkilendirme işlemleri yapılır.
 
     # /api/v1/ ile başlayan tüm istekleri users.urls'e yönlendir. (Kullanıcı CRUD işlemleri için)
     path('api/v1/', include('users.urls')), # 'users' uygulamasının URL'lerini dahil et. users modülü.
