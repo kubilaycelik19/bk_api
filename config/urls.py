@@ -25,10 +25,12 @@ from rest_framework_simplejwt.views import ( # JWT ile ilgili view'ları import 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # /api/v1/ ile başlayan tüm istekleri users.urls'e yönlendir. (Kullanıcı CRUD işlemleri için)
-    path('api/v1/', include('users.urls')), # 'users' uygulamasının URL'lerini dahil et
-
     # Bu adrese email/password token edince 'access' ve 'refresh' token'ları alınacak.
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # Token alma endpoint'i
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), # Token yenileme endpoint'i
+
+    # /api/v1/ ile başlayan tüm istekleri users.urls'e yönlendir. (Kullanıcı CRUD işlemleri için)
+    path('api/v1/', include('users.urls')), # 'users' uygulamasının URL'lerini dahil et. users modülü.
+    path('api/v1/', include('appointments.urls')), # 'appointments' uygulamasının URL'lerini dahil et. appointments modülü.
+
 ]

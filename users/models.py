@@ -8,8 +8,8 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
 
     # Roller
-    is_patient = models.BooleanField(default=False)
-    is_psychologist = models.BooleanField(default=False)
+    is_patient = models.BooleanField(default=True)  # Hasta rolü
+
 
     USERNAME_FIELD = 'email' # Giriş için email kullanılır
     REQUIRED_FIELDS = ['username'] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz)
