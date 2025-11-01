@@ -162,6 +162,27 @@ CORS_ALLOWED_ORIGINS = [
     "https://bk-frontend-lime.vercel.app", # Vercel üzerinde barındırılan frontend uygulamamız
 ]
 
+# Kural 1: Hangi metodlara (GET, POST, OPTIONS) izin verileceği
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS', # Uçuş öncesi (Preflight) isteği için bu ZORUNLU
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Kural 2: Hangi özel başlıklara (header) izin verileceği
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'authorization', # Bu, bizim 'Bearer ${accessToken}' için KRİTİK
+    'content-type',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
 # Canlıda Admin Paneli CSS/JS dosyaları için ayarlar
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
