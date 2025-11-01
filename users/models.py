@@ -64,6 +64,7 @@ class CustomUser(AbstractUser):
     # Roller
     is_patient = models.BooleanField(default=True)  # Hasta rolü
 
+    objects = CustomUserManager()
 
     USERNAME_FIELD = 'email' # Giriş için email kullanılır
     REQUIRED_FIELDS = [] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz). Username zorunluluğu geçici olarak kaldırıldı.
