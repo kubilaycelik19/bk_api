@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import dj_database_url
 import os
 from dotenv import load_dotenv
 load_dotenv() # .env dosyasındaki ortam değişkenlerini yükle
@@ -29,7 +30,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # config/settings.py
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '127.0.0.1',  # Yerel (local) testimiz için
+    'localhost',
+]
+
+# Render.com, projeyi çalıştırırken 'RENDER_EXTERNAL_HOSTNAME' adında
+# bir ortam değişkeni (environment variable) sağlar.
+# Bu değişkeni alıp ALLOWED_HOSTS listesine otomatik ekliyoruz.
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -50,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,11 +94,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+
+        default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
+        
+        # Veritabanı bağlantı ömrü
+        conn_max_age=600
+    )
 }
 
 
@@ -143,4 +159,10 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500", # Live Server adresimiz
     "http://localhost:5500",  # Live Server'ın diğer adı
+    "https://bkpsychofrontend.vercel.app/", # Vercel üzerinde barındırılan frontend uygulamam
 ]
+
+# Canlıda Admin Paneli CSS/JS dosyaları için ayarlar
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
