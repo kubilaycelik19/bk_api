@@ -2,6 +2,7 @@ from urllib import request
 from django.shortcuts import render
 
 from rest_framework import viewsets, permissions, status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
 from rest_framework.response import Response
 
 from users import serializers
@@ -24,6 +25,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return request.user and request.user.is_staff # Sadece admin izinli
     
 class IsPatientOwner(permissions.BasePermission):
+
     """
     Objeyi (randevuyu) sadece hastanın kendisi görebilir/silebilir.
     """
@@ -33,6 +35,18 @@ class IsPatientOwner(permissions.BasePermission):
             return True
         # Eğer randevu objesi, giriş yapan hastaya aitse izin ver
         return obj.patient == request.user # Sadece kendi randevusunu görebilir/silebilir
+
+class IsAuthenticatedOrOptions(BasePermission):
+    """
+    Gelen istek 'OPTIONS' ise her zaman izin ver.
+    Diğer tüm istekler için 'IsAuthenticated' (Giriş yapmış mı?) kontrolü yap.
+    """
+    def has_permission(self, request, view):
+        # Uçuş öncesi (Preflight) OPTIONS isteğine her zaman izin ver
+        if request.method == 'OPTIONS':
+            return True
+        # Diğer tüm istekler için (GET, POST, DELETE) token'ı kontrol et
+        return request.user and request.user.is_authenticated
 
 # Buraya kadar olan kısım permission sınıfları içindi.
 # Bu sınıfların döndürdüğü değerler şöyledir:
@@ -63,7 +77,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     - Psikolog (Admin): Tüm randevuları Listeler (GET), Tüm randevuları Siler (DELETE)
     """
     serializer_class = AppointmentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsPatientOwner] # Korumaları ekledik
+    permission_classes = [IsAuthenticatedOrOptions, IsPatientOwner] # Korumaları ekledik
 
     def get_queryset(self): # queryset = Appointment.objects.all()
         """
