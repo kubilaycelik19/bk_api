@@ -6,27 +6,40 @@ from django.contrib.auth.models import BaseUserManager
 class CustomUserManager(BaseUserManager):
     """
     'email' alanını 'username' olarak kullanan
-    özel kullanıcı yöneticimiz.
+    özel kullanıcı yöneticimiz. (DOĞRU VERSİYON)
     """
-    def create_user(self, email, password=None, **extra_fields):
+
+    def _create_user(self, email, password, **extra_fields):
         """
-        Normal bir kullanıcı yaratır ('username' sormaz).
+        Email ve şifre ile kullanıcı yaratan temel fonksiyon.
         """
         if not email:
-            raise ValueError("Email alanı zorunludur")
+            raise ValueError('Email alanı zorunludur')
 
         email = self.normalize_email(email)
-        # 'username'i otomatik olarak email'in ilk kısmından alıyoruz
+
+        # username'i extra_fields'tan al, yoksa email'den üret
         username = extra_fields.pop('username', email.split('@')[0])
 
         user = self.model(email=email, username=username, **extra_fields)
-        user.set_password(password) # Şifreyi hash'ler
+        user.set_password(password) # Şifreyi GÜVENLİ olarak hash'ler
         user.save(using=self._db)
         return user
+
+    def create_user(self, email, password=None, **extra_fields):
+        """
+        Normal bir kullanıcı (Hasta) yaratır.
+        """
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        extra_fields.setdefault('is_patient', True) # GÖREV 51'deki güvenlik
+        return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password=None, **extra_fields):
         """
         Bir superuser (Admin/Psikolog) yaratır.
+        Bu imza (signature) 'createsuperuser --noinput' komutuyla
+        artık tam uyumludur.
         """
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -37,8 +50,10 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser is_superuser=True olmalıdır.')
 
-        # 'create_user' fonksiyonumuzu (yukarıdaki) kullanarak yaratır
-        return self.create_user(email, password, **extra_fields)
+        # Biz sadece email ve password'ü _create_user'a yolluyoruz.
+        # _create_user da username'i extra_fields'tan 'pop' ile çekecek.
+
+        return self._create_user(email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
     # Kullanıcı adı yerine email ile giriş yapılacak
