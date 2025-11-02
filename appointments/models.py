@@ -3,12 +3,14 @@ from config.settings import AUTH_USER_MODEL # Projenin ayarlarından özel kulla
 
 class AvailableTimeSlot(models.Model):
 
+    psychologist = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_time = models.DateTimeField() # Randevu başlangıç zamanı
     end_time = models.DateTimeField() # Randevu bitiş zamanı
     is_booked = models.BooleanField(default=False) # Randevu dolu mu?
 
     def __str__(self):
-        return f"Müsait Zaman: {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+        # Admin panelinde güzel görünmesi için
+        return f"Dr. {self.psychologist.first_name} - {self.start_time.strftime('%Y-%m-%d %H:%M')}"
     
 class Appointment(models.Model):
     

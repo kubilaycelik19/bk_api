@@ -114,6 +114,11 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
         # Çakışma yoksa, ModelViewSet'in normal 'create'
         # (yaratma) işlemine devam etmesine izin ver.
         return super().create(request, *args, **kwargs)
+    
+    def perform_create(self, serializer):
+        # 'serializer.save()' demeden önce, 'psychologist' alanını
+        # o an giriş yapmış olan kullanıcı (Admin/Psikolog) olarak ata.
+        serializer.save(psychologist=self.request.user)
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     """
