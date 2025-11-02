@@ -134,12 +134,54 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self): # queryset = Appointment.objects.all()
         """
         Giriş yapan kullanıcıya göre listeyi filtrele.
+        Güvenli ilişki kontrolleri ile bozuk referansları filtrele.
         """
         user = self.request.user # Giriş yapan kullanıcıyı al
         if user.is_staff: # Eğer kullanıcı psikolog (admin) ise
-            return Appointment.objects.all().order_by('-created_at') # Tüm randevuları göster
+            # Tüm randevuları göster, ama time_slot veya patient ilişkisi bozuk olanları filtrele
+            queryset = Appointment.objects.select_related('time_slot', 'patient').order_by('-created_at')
+            # Bozuk ilişkileri filtrele
+            return queryset.filter(time_slot__isnull=False, patient__isnull=False)
         # Değilse (yani hasta ise)
-        return Appointment.objects.filter(patient=user).order_by('-created_at') # Sadece kendi randevularını göster
+        # Sadece kendi randevularını göster, ama time_slot ilişkisi bozuk olanları filtrele
+        queryset = Appointment.objects.select_related('time_slot', 'patient').filter(patient=user).order_by('-created_at')
+        return queryset.filter(time_slot__isnull=False)
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Randevu listesi döndürülürken, serialization hataları olan randevuları filtrele.
+        Her randevuyu tek tek serialize ederken ValidationError'ları yakalar ve atlar.
+        """
+        try:
+            # Queryset'i al
+            queryset = self.filter_queryset(self.get_queryset())
+            
+            # Her randevuyu tek tek kontrol et ve sadece geçerli olanları ekle
+            filtered_data = []
+            for instance in queryset:
+                try:
+                    # Randevuyu serialize et - eğer ValidationError fırlatılırsa atla
+                    item_serializer = self.get_serializer(instance)
+                    item_data = item_serializer.data
+                    
+                    # Ekstra kontrol: time_slot ve patient olmalı
+                    if (item_data and 
+                        item_data.get('id') and 
+                        item_data.get('time_slot') and 
+                        item_data.get('time_slot', {}).get('start_time')):
+                        filtered_data.append(item_data)
+                except (ValidationError, Exception) as e:
+                    # Serialization hatası - bu randevuyu atla
+                    print(f"AppointmentViewSet.list: Randevu {getattr(instance, 'id', 'unknown')} atlandı: {str(e)}")
+                    continue
+            
+            # Response oluştur
+            return Response(filtered_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            # Genel hata durumunda boş liste döndür
+            print(f"AppointmentViewSet.list hatası: {str(e)}")
+            return Response([], status=status.HTTP_200_OK)
 
     def perform_create(self, serializer):
         """
@@ -176,20 +218,27 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         Randevu silindiğinde (DELETE) slot'un is_booked durumunu False yap.
         Böylece slot tekrar müsait hale gelir ve diğer hastalar tarafından görülebilir.
         """
-        # Randevu ile ilişkili slotu al
-        slot = instance.time_slot
-        
-        # Slot'un başlangıç zamanını kontrol et - eğer randevu tarihi geçmişse slot'u güncelleme
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
-        
-        # Eğer randevu tarihi henüz gelmemişse (gelecek bir randevu ise), slot'u tekrar müsait yap
-        if slot.start_time > now:
-            slot.is_booked = False
-            slot.save()
-            print(f"Slot {slot.id} tekrar müsait hale getirildi (is_booked=False)")
-        else:
-            print(f"Randevu tarihi geçmiş ({slot.start_time}), slot durumu değiştirilmedi.")
+        try:
+            # Randevu ile ilişkili slotu al - eğer slot yoksa veya bozuk ilişki varsa hata verme
+            slot = instance.time_slot
+            
+            if slot:
+                # Slot'un başlangıç zamanını kontrol et - eğer randevu tarihi geçmişse slot'u güncelleme
+                from datetime import datetime, timezone
+                now = datetime.now(timezone.utc)
+                
+                # Eğer randevu tarihi henüz gelmemişse (gelecek bir randevu ise), slot'u tekrar müsait yap
+                if slot.start_time > now:
+                    slot.is_booked = False
+                    slot.save()
+                    print(f"Slot {slot.id} tekrar müsait hale getirildi (is_booked=False)")
+                else:
+                    print(f"Randevu tarihi geçmiş ({slot.start_time}), slot durumu değiştirilmedi.")
+            else:
+                print(f"Uyarı: Randevu {instance.id} için time_slot bulunamadı veya silinmiş.")
+        except Exception as e:
+            # Slot güncelleme hatası olsa bile randevuyu silmeye devam et
+            print(f"Uyarı: Randevu silinirken slot güncellenemedi: {str(e)}")
         
         # ModelViewSet'in normal destroy işlemini çağır (randevuyu sil)
         super().perform_destroy(instance)
