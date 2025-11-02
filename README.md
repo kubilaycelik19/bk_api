@@ -1,3 +1,7 @@
+Canlı Arayüz Adresi (Vercel):
+https://bk-frontend-react.vercel.app/
+Bu arayüz, https://bk-api-evsk.onrender.com adresindeki Backend API'sini kullanmaktadır.
+
 Kullanılan Teknolojiler
 Backend: Python 3.11, Django 5.2
 
