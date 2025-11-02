@@ -7,7 +7,6 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
 from rest_framework.response import Response
 
-from users import serializers
 from .models import AvailableTimeSlot, Appointment
 from .serializers import AvailableTimeSlotSerializer, AppointmentSerializer
 
@@ -82,11 +81,14 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
 
         # 2. Gelen metni (string) Python'un 'datetime' objesine çevir
         #    (API'miz '...Z' (ISO) formatında bekliyor)
+        if not new_start_time_str or not new_end_time_str:
+            raise ValidationError({"detail": "Başlangıç ve bitiş zamanları gereklidir."})
+        
         try:
             new_start_time = datetime.fromisoformat(new_start_time_str.replace('Z', '+00:00'))
             new_end_time = datetime.fromisoformat(new_end_time_str.replace('Z', '+00:00'))
-        except (ValueError, TypeError):
-            raise ValidationError({"detail": "Geçersiz tarih formatı. ISO formatı (YYYY-AA-GGTHH:MM:SSZ) gereklidir."})
+        except (ValueError, TypeError) as e:
+            raise ValidationError({"detail": f"Geçersiz tarih formatı. ISO formatı (YYYY-AA-GGTHH:MM:SSZ) gereklidir. Hata: {str(e)}"})
 
         # 3. KURAL: Bitiş zamanı, başlangıç zamanından önce olamaz
         if new_end_time <= new_start_time:
@@ -146,7 +148,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         user = self.request.user # Giriş yapan kullanıcıyı al
         # Eğer randevu alan kişi psikologun kendisiyse hata ver
         if user.is_staff: # Eğer kullanıcı psikolog (admin) ise
-            raise serializers.ValidationError("Psikologlar randevu alamaz.")
+            raise ValidationError({"detail": "Psikologlar randevu alamaz."})
 
         # Hastanın bize POST ile yolladığı slot ID'sini al
         time_slot_id = serializer.validated_data.pop('time_slot_id') # Randevu slot ID'si
@@ -155,11 +157,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # O ID'ye ait slotu bul
             slot = AvailableTimeSlot.objects.get(id=time_slot_id) # Slotu veritabanından al
         except AvailableTimeSlot.DoesNotExist:
-            raise serializers.ValidationError("Geçersiz zaman slotu ID'si.") # Eğer slot yoksa hata ver
+            raise ValidationError({"detail": "Geçersiz zaman slotu ID'si. Belirtilen slot bulunamadı."})
 
         # Eğer slot zaten doluysa (is_booked=True) hata ver
         if slot.is_booked:
-            raise serializers.ValidationError("Bu zaman slotu zaten dolu.") # Eğer slot doluysa hata ver
+            raise ValidationError({"detail": "Bu zaman slotu zaten dolu. Lütfen başka bir slot seçin."})
 
         # Hata yoksa: Slotu rezerve et
         slot.is_booked = True # Slotu dolu yap

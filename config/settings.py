@@ -153,6 +153,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # Custom exception handler - Tutarlı hata yönetimi için
+    'EXCEPTION_HANDLER': 'config.exceptions.custom_exception_handler',
 }
 
 # Güvendiğimiz Frontend adreslerinin listesi
