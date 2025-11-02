@@ -1,6 +1,8 @@
 from urllib import request
 from django.shortcuts import render
+from django.db.models import Q
 
+from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, permissions, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
 from rest_framework.response import Response
@@ -8,6 +10,8 @@ from rest_framework.response import Response
 from users import serializers
 from .models import AvailableTimeSlot, Appointment
 from .serializers import AvailableTimeSlotSerializer, AppointmentSerializer
+
+from datetime import datetime
 
 # --- Permission Sınıfları ---
 
@@ -69,6 +73,47 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
 
     # YENİ: Kendi özel iznimizi ekledik
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly] # Kimlik doğrulama ve özel izin.
+
+    def create(self, request, *args, **kwargs):
+        # 1. Gelen isteğin (POST) içinden yeni slotun
+        #    başlangıç ve bitiş zamanlarını al
+        new_start_time_str = request.data.get('start_time')
+        new_end_time_str = request.data.get('end_time')
+
+        # 2. Gelen metni (string) Python'un 'datetime' objesine çevir
+        #    (API'miz '...Z' (ISO) formatında bekliyor)
+        try:
+            new_start_time = datetime.fromisoformat(new_start_time_str.replace('Z', '+00:00'))
+            new_end_time = datetime.fromisoformat(new_end_time_str.replace('Z', '+00:00'))
+        except (ValueError, TypeError):
+            raise ValidationError({"detail": "Geçersiz tarih formatı. ISO formatı (YYYY-AA-GGTHH:MM:SSZ) gereklidir."})
+
+        # 3. KURAL: Bitiş zamanı, başlangıç zamanından önce olamaz
+        if new_end_time <= new_start_time:
+            raise ValidationError({"detail": "Bitiş zamanı, başlangıç zamanından önce veya ona eşit olamaz."})
+
+        # 4. ÇAKIŞMA KONTROLÜ (İşin kalbi)
+        # Veritabanında, bu yeni zaman aralığıyla *çakışan*
+        # HERHANGİ BİR slot var mı diye bak.
+
+        # Çakışma Mantığı (Açıklama):
+        # (Eski.Başlangıç < Yeni.Bitiş) VE (Eski.Bitiş > Yeni.Başlangıç)
+        # Bu sihirli formül, tüm çakışma (overlap) senaryolarını yakalar.
+
+        overlapping_slots = AvailableTimeSlot.objects.filter(
+            Q(start_time__lt=new_end_time) & 
+            Q(end_time__gt=new_start_time)
+        )
+
+        # 5. KARAR
+        if overlapping_slots.exists():
+            # EĞER ÇAKIŞMA VARSA: Hata fırlat (400 Bad Request)
+            raise ValidationError({"detail": "Bu zaman aralığı (veya bir kısmı) zaten başka bir müsait slot ile çakışıyor."})
+
+        # 6. DEVAM ET
+        # Çakışma yoksa, ModelViewSet'in normal 'create'
+        # (yaratma) işlemine devam etmesine izin ver.
+        return super().create(request, *args, **kwargs)
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     """
