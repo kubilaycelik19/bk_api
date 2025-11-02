@@ -168,3 +168,26 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # Randevuyu yarat, 'patient'ı giriş yapan kullanıcıya,
         # 'time_slot'u ise bulduğumuz slota ata.
         serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
+
+    def perform_destroy(self, instance):
+        """
+        Randevu silindiğinde (DELETE) slot'un is_booked durumunu False yap.
+        Böylece slot tekrar müsait hale gelir ve diğer hastalar tarafından görülebilir.
+        """
+        # Randevu ile ilişkili slotu al
+        slot = instance.time_slot
+        
+        # Slot'un başlangıç zamanını kontrol et - eğer randevu tarihi geçmişse slot'u güncelleme
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        
+        # Eğer randevu tarihi henüz gelmemişse (gelecek bir randevu ise), slot'u tekrar müsait yap
+        if slot.start_time > now:
+            slot.is_booked = False
+            slot.save()
+            print(f"Slot {slot.id} tekrar müsait hale getirildi (is_booked=False)")
+        else:
+            print(f"Randevu tarihi geçmiş ({slot.start_time}), slot durumu değiştirilmedi.")
+        
+        # ModelViewSet'in normal destroy işlemini çağır (randevuyu sil)
+        super().perform_destroy(instance)
