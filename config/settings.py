@@ -207,8 +207,4 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
-# DRF Pagination (ileride ölçek için faydalı)
-REST_FRAMEWORK.update({
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
-})
+# DRF Pagination (ileride eklenecek). Şimdilik kapalı, frontend dizi bekliyor.
