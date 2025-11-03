@@ -33,6 +33,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     '127.0.0.1',  # Yerel (local) testimiz için
     'localhost',
+    'bk-api-evsk.onrender.com',
 ]
 
 # Render.com, projeyi çalıştırırken 'RENDER_EXTERNAL_HOSTNAME' adında
@@ -168,6 +169,14 @@ CORS_ALLOWED_ORIGINS = [
     "https://bk-frontend-react-78c4.vercel.app",
 ]
 
+# Preview alan adları için esnek izin (opsiyonel)
+# CORS_ALLOWED_ORIGIN_REGEXES = [r'^https://.*\\.vercel\\.app$']
+
+# CSRF güvenilir originler (form/cookie senaryoları için)
+CSRF_TRUSTED_ORIGINS = [
+    "https://bk-frontend-react-78c4.vercel.app",
+]
+
 # Kural 1: Hangi metodlara (GET, POST, OPTIONS) izin verileceği
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -193,3 +202,13 @@ CORS_ALLOW_HEADERS = [
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Proxy arkasında doğru scheme/host için
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# DRF Pagination (ileride ölçek için faydalı)
+REST_FRAMEWORK.update({
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+})
