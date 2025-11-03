@@ -161,12 +161,11 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500", # Live Server adresimiz
     "http://localhost:5500",  # Live Server'ın diğer adı
-    "https://bk-frontend-lime.vercel.app", # Vercel üzerinde barındırılan frontend uygulamamız
 
     # React Vite geliştirme sunucusu adresleri
     "http://127.0.0.1:5173",
     "http://localhost:5173",
-    "https://bk-frontend-react-78c4.vercel.app/",
+    "https://bk-frontend-react-78c4.vercel.app",
 ]
 
 # Kural 1: Hangi metodlara (GET, POST, OPTIONS) izin verileceği
