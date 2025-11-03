@@ -166,7 +166,7 @@ CORS_ALLOWED_ORIGINS = [
     # React Vite geliştirme sunucusu adresleri
     "http://127.0.0.1:5173",
     "http://localhost:5173",
-    "https://bk-frontend-react.vercel.app",
+    "https://bk-frontend-react-78c4.vercel.app/",
 ]
 
 # Kural 1: Hangi metodlara (GET, POST, OPTIONS) izin verileceği
