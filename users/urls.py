@@ -16,6 +16,6 @@ urlpatterns = [
     # YENİ EKLEDİK: "Ben Kimim?" endpoint'i
     path('users/me/', get_self_details, name='user-me'),
 
-    # Router'ın URL'leri (Bu zaten vardı)
+    # Router'ın URL'leri
     path('', include(router.urls)),
 ]
