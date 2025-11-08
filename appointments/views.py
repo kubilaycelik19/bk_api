@@ -51,13 +51,6 @@ class IsAuthenticatedOrOptions(BasePermission):
         # Diğer tüm istekler için (GET, POST, DELETE) token'ı kontrol et
         return request.user and request.user.is_authenticated
 
-# Buraya kadar olan kısım permission sınıfları içindi.
-# Bu sınıfların döndürdüğü değerler şöyledir:
-# IsAdminOrReadOnly: Sadece admin (psikolog) oluşturma/düzenleme/silme yapabilir, herkes sadece okuyabilir.
-# IsPatientOwner: Sadece randevuyu alan hasta kendisi görebilir/silebilir, admin (psikolog) her şeyi görebilir.
-
-# Classların döndürdüğü değerler viewsetlerde kullanılır.
-
 # --- VİEWSETLER ---
 
 class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
@@ -74,13 +67,12 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly] # Kimlik doğrulama ve özel izin.
 
     def create(self, request, *args, **kwargs):
-        # 1. Gelen isteğin (POST) içinden yeni slotun
-        #    başlangıç ve bitiş zamanlarını al
+        # Gelen isteğin (POST) içinden yeni slotun başlangıç ve bitiş zamanlarını al
         new_start_time_str = request.data.get('start_time')
         new_end_time_str = request.data.get('end_time')
 
-        # 2. Gelen metni (string) Python'un 'datetime' objesine çevir
-        #    (API'miz '...Z' (ISO) formatında bekliyor)
+        # Gelen metni (string) Python'un 'datetime' objesine çevir
+        # (API'miz '...Z' (ISO) formatında bekliyor)
         if not new_start_time_str or not new_end_time_str:
             raise ValidationError({"detail": "Başlangıç ve bitiş zamanları gereklidir."})
         
@@ -90,36 +82,32 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
         except (ValueError, TypeError) as e:
             raise ValidationError({"detail": f"Geçersiz tarih formatı. ISO formatı (YYYY-AA-GGTHH:MM:SSZ) gereklidir. Hata: {str(e)}"})
 
-        # 3. KURAL: Bitiş zamanı, başlangıç zamanından önce olamaz
+        # Bitiş zamanı, başlangıç zamanından önce olamaz
         if new_end_time <= new_start_time:
             raise ValidationError({"detail": "Bitiş zamanı, başlangıç zamanından önce veya ona eşit olamaz."})
 
-        # 4. ÇAKIŞMA KONTROLÜ (İşin kalbi)
+        # ÇAKIŞMA KONTROLÜ
         # Veritabanında, bu yeni zaman aralığıyla *çakışan*
         # HERHANGİ BİR slot var mı diye bak.
 
-        # Çakışma Mantığı (Açıklama):
+        # Çakışma Mantığı:
         # (Eski.Başlangıç < Yeni.Bitiş) VE (Eski.Bitiş > Yeni.Başlangıç)
-        # Bu sihirli formül, tüm çakışma (overlap) senaryolarını yakalar.
 
         overlapping_slots = AvailableTimeSlot.objects.filter(
             Q(start_time__lt=new_end_time) & 
             Q(end_time__gt=new_start_time)
         )
 
-        # 5. KARAR
+        # KARAR
         if overlapping_slots.exists():
             # EĞER ÇAKIŞMA VARSA: Hata fırlat (400 Bad Request)
             raise ValidationError({"detail": "Bu zaman aralığı (veya bir kısmı) zaten başka bir müsait slot ile çakışıyor."})
 
-        # 6. DEVAM ET
-        # Çakışma yoksa, ModelViewSet'in normal 'create'
-        # (yaratma) işlemine devam etmesine izin ver.
+        # Çakışma yoksa, ModelViewSet'in normal 'create' işlemine devam etmesine izin ver.
         return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
-        # 'serializer.save()' demeden önce, 'psychologist' alanını
-        # o an giriş yapmış olan kullanıcı (Admin/Psikolog) olarak ata.
+        # 'serializer.save()' demeden önce, 'psychologist' alanını o an giriş yapmış olan kullanıcı olarak ata.
         serializer.save(psychologist=self.request.user)
 
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -218,6 +206,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         Randevu silindiğinde (DELETE) slot'un is_booked durumunu False yap.
         Böylece slot tekrar müsait hale gelir ve diğer hastalar tarafından görülebilir.
         """
+        # Admin tarafından iptal edildiğini signal'a bildirmek için
+        instance._cancelled_by_admin = self.request.user.is_staff
+        
         try:
             # Randevu ile ilişkili slotu al - eğer slot yoksa veya bozuk ilişki varsa hata verme
             slot = instance.time_slot

@@ -1,0 +1,17 @@
+Merhaba {{ patient_name }},
+
+Randevunuz iptal edilmiştir.
+
+📅 İptal Edilen Randevu:
+   Tarih: {{ appointment_datetime }}
+
+{% if cancelled_by_admin %}
+Psikologunuz tarafından randevunuz iptal edilmiştir.
+{% else %}
+Randevunuzu iptal ettiniz.
+{% endif %}
+
+Yeni bir randevu almak için lütfen sistemimize giriş yapın.
+
+İyi günler dileriz!
+
