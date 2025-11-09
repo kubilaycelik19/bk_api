@@ -59,12 +59,18 @@ class AvailableTimeSlotViewSet(viewsets.ModelViewSet):
     - Admin (Psikolog) Yaratır/Siler/Günceller (POST, PUT, DELETE)
     - Herkes (Hasta) Listeler (GET)
     """
-    # Sadece rezerve EDİLMEMİŞ slotları listele
-    queryset = AvailableTimeSlot.objects.filter(is_booked=False) # Sadece boş slotlar
     serializer_class = AvailableTimeSlotSerializer # Hangi serializer kullanılacak?
 
     # YENİ: Kendi özel iznimizi ekledik
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly] # Kimlik doğrulama ve özel izin.
+
+    def get_queryset(self):
+        """
+        Müsait slotları tarih ve saat sıralamasına göre döndür.
+        İptal edilen slotlar da doğru sırada görünecek.
+        """
+        # Sadece rezerve EDİLMEMİŞ slotları listele ve tarih/saat sıralamasına göre diz
+        return AvailableTimeSlot.objects.filter(is_booked=False).order_by('start_time')
 
     def create(self, request, *args, **kwargs):
         # Gelen isteğin (POST) içinden yeni slotun başlangıç ve bitiş zamanlarını al
