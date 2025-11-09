@@ -8,6 +8,16 @@ Render.com free tier'da outbound SMTP bağlantıları engellenmiş olabilir. Bu 
 OSError: [Errno 101] Network is unreachable
 ```
 
+## ⚠️ ÖNEMLİ: Email Gönderme Kritikse
+
+Eğer email göndermek sizin için kritikse, **HOSTING_EMAIL_OPTIONS.md** dosyasına bakın. Orada şu seçenekleri bulacaksınız:
+
+1. **Render.com Ücretli Plan** - Gmail SMTP direkt çalışır ($7/ay, migration yok)
+2. **Google Cloud Platform (GCP) Free Tier** - Gmail SMTP çalışır (ücretsiz, migration gerekiyor)
+3. **AWS Free Tier** - AWS SES çalışır (62,000 email/ay ücretsiz, migration gerekiyor)
+4. **Railway.app Free Tier** - Gmail SMTP çalışır (ücretsiz, migration gerekiyor)
+5. **SendGrid/Mailgun** - Render free tier'da çalışır (ücretsiz, migration yok) ⭐ EN KOLAY
+
 ## Çözümler
 
 ### 1. SendGrid (Önerilen - Ücretsiz)
