@@ -33,13 +33,23 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # POST ile gelen 'password' alanını alma işlemi
         password = serializer.validated_data.get('password')
+        email = serializer.validated_data.get('email')
 
         # Şifreyi hash'leme işlemi
         hashed_password = make_password(password)
 
+        # Username yoksa email'den otomatik oluştur
+        # Normal kullanıcılar username belirlemek zorunda değil
+        # Sadece superuser oluştururken (admin panel) username gerekli olabilir
+        username = serializer.validated_data.get('username')
+        if not username or username.strip() == '':
+            # Email'den username oluştur (örn: user@example.com -> user)
+            username = email.split('@')[0]
+
         # Hashlenen şifreyi serializere koyarak kaydetme işlemi
         serializer.save(
                 password=hashed_password,
+                username=username,
                 is_patient=True, 
                 is_staff=False
             )
