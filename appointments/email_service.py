@@ -4,6 +4,7 @@ Email gönderme servisi - Randevu bildirimleri için
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.db import transaction
 import logging
 import threading
 
@@ -101,7 +102,7 @@ def _send_appointment_created_email_sync(appointment):
 def send_appointment_created_email(appointment):
     """
     Randevu oluşturulduğunda hasta ve psikologa email gönder (asenkron)
-    Threading kullanarak arka planda çalışır, randevu oluşturma işlemini yavaşlatmaz
+    Transaction commit edildikten sonra thread ile arka planda çalışır
     """
     # Appointment objesini thread-safe bir şekilde geçirmek için ID kullan
     appointment_id = appointment.id
@@ -117,10 +118,15 @@ def send_appointment_created_email(appointment):
         except Exception as e:
             logger.error(f"Thread içinde email gönderilirken hata: {str(e)}", exc_info=True)
     
-    # Thread'i başlat
-    thread = threading.Thread(target=send_email_thread, daemon=True)
-    thread.start()
-    logger.info(f"Email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
+    # Transaction commit edildikten sonra thread'i başlat
+    # Bu, thread'in çalışmasını garanti eder
+    def start_email_thread():
+        thread = threading.Thread(target=send_email_thread, daemon=False)
+        thread.start()
+        logger.info(f"Email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
+    
+    # Transaction commit edildikten sonra çalıştır
+    transaction.on_commit(start_email_thread)
 
 
 def _send_appointment_cancelled_email_sync(appointment, cancelled_by_admin=False):
@@ -189,7 +195,7 @@ def _send_appointment_cancelled_email_sync(appointment, cancelled_by_admin=False
 def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
     """
     Randevu iptal edildiğinde hasta ve psikologa email gönder (asenkron)
-    Threading kullanarak arka planda çalışır, randevu iptal işlemini yavaşlatmaz
+    Transaction commit edildikten sonra thread ile arka planda çalışır
     
     Not: pre_delete signal'da çağrıldığı için appointment henüz silinmemiş,
     bu yüzden appointment bilgilerini önceden kaydetmemiz gerekiyor
@@ -253,8 +259,13 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         except Exception as e:
             logger.error(f"Thread içinde iptal email'i gönderilirken hata: {str(e)}", exc_info=True)
     
-    # Thread'i başlat
-    thread = threading.Thread(target=send_email_thread, daemon=True)
-    thread.start()
-    logger.info(f"İptal email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
+    # Transaction commit edildikten sonra thread'i başlat
+    # Bu, thread'in çalışmasını garanti eder
+    def start_email_thread():
+        thread = threading.Thread(target=send_email_thread, daemon=False)
+        thread.start()
+        logger.info(f"İptal email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
+    
+    # Transaction commit edildikten sonra çalıştır
+    transaction.on_commit(start_email_thread)
 
