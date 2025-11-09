@@ -125,6 +125,20 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticatedOrOptions, IsPatientOwner] # Korumaları ekledik
 
+    def create(self, request, *args, **kwargs):
+        """
+        Randevu oluşturma işlemi - Debug log'ları için override edildi
+        """
+        print(f"🔵 [VIEW] create() metodu çağrıldı - User: {request.user.email if request.user.is_authenticated else 'Anonymous'}")
+        print(f"🔵 [VIEW] Request data: {request.data}")
+        try:
+            response = super().create(request, *args, **kwargs)
+            print(f"🔵 [VIEW] create() başarılı - Response status: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"🔴 [VIEW] create() hatası: {str(e)}")
+            raise
+
     def get_queryset(self): # queryset = Appointment.objects.all()
         """
         Giriş yapan kullanıcıya göre listeyi filtrele.
@@ -181,33 +195,46 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         """
         Yeni randevu (POST) yaratılırken mantığı yönet.
         """
+        print(f"🟢 [VIEW] perform_create() çağrıldı")
         user = self.request.user # Giriş yapan kullanıcıyı al
+        print(f"🟢 [VIEW] User: {user.email}, is_staff: {user.is_staff}")
+        
         # Eğer randevu alan kişi psikologun kendisiyse hata ver
         if user.is_staff: # Eğer kullanıcı psikolog (admin) ise
             raise ValidationError({"detail": "Psikologlar randevu alamaz."})
 
         # Hastanın bize POST ile yolladığı slot ID'sini al
         time_slot_id = serializer.validated_data.pop('time_slot_id') # Randevu slot ID'si
+        print(f"🟢 [VIEW] time_slot_id: {time_slot_id}")
 
         try:
             # O ID'ye ait slotu bul
             slot = AvailableTimeSlot.objects.get(id=time_slot_id) # Slotu veritabanından al
+            print(f"🟢 [VIEW] Slot bulundu - ID: {slot.id}, is_booked: {slot.is_booked}")
         except AvailableTimeSlot.DoesNotExist:
+            print(f"🔴 [VIEW] Slot bulunamadı - ID: {time_slot_id}")
             raise ValidationError({"detail": "Geçersiz zaman slotu ID'si. Belirtilen slot bulunamadı."})
 
         # Eğer slot zaten doluysa (is_booked=True) hata ver
         if slot.is_booked:
+            print(f"🔴 [VIEW] Slot zaten dolu - ID: {slot.id}")
             raise ValidationError({"detail": "Bu zaman slotu zaten dolu. Lütfen başka bir slot seçin."})
 
         # Hata yoksa: Slotu rezerve et
         slot.is_booked = True # Slotu dolu yap
         slot.save() # Değişikliği kaydet
+        print(f"🟢 [VIEW] Slot rezerve edildi - ID: {slot.id}")
 
         # Randevuyu yarat, 'patient'ı giriş yapan kullanıcıya,
         # 'time_slot'u ise bulduğumuz slota ata.
         print(f"🔄 [VIEW] Randevu oluşturuluyor - User: {user.email}, Slot: {slot.id}")
+        print(f"🔄 [VIEW] serializer.save() çağrılmadan önce...")
         appointment = serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
-        print(f"✅ [VIEW] Randevu oluşturuldu - ID: {appointment.id}, Signal tetiklenmeli...")
+        print(f"✅ [VIEW] Randevu oluşturuldu - ID: {appointment.id}")
+        print(f"✅ [VIEW] Appointment.patient: {appointment.patient.email}")
+        print(f"✅ [VIEW] Appointment.time_slot: {appointment.time_slot.id}")
+        print(f"✅ [VIEW] Signal tetiklenmeli... (post_save signal)")
+        print(f"✅ [VIEW] perform_create() tamamlandı, response dönecek...")
 
     def perform_destroy(self, instance):
         """
