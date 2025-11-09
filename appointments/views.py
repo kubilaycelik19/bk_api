@@ -205,7 +205,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         # Randevuyu yarat, 'patient'ı giriş yapan kullanıcıya,
         # 'time_slot'u ise bulduğumuz slota ata.
-        serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
+        print(f"🔄 [VIEW] Randevu oluşturuluyor - User: {user.email}, Slot: {slot.id}")
+        appointment = serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
+        print(f"✅ [VIEW] Randevu oluşturuldu - ID: {appointment.id}, Signal tetiklenmeli...")
 
     def perform_destroy(self, instance):
         """

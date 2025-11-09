@@ -15,14 +15,25 @@ def appointment_created_signal(sender, instance, created, **kwargs):
     """
     Yeni randevu oluşturulduğunda email gönder
     """
+    # DEBUG: Signal'in çalışıp çalışmadığını kontrol et
+    print(f"🔔 [SIGNAL DEBUG] post_save signal tetiklendi - created={created}, instance_id={instance.id if hasattr(instance, 'id') else 'N/A'}")
+    logger.info(f"🔔 [SIGNAL] post_save signal tetiklendi - created={created}, instance_id={instance.id if hasattr(instance, 'id') else 'N/A'}")
+    
     if created:
         try:
+            print(f"🔔 [SIGNAL] Yeni randevu oluşturuldu - ID: {instance.id}")
             logger.info(f"🔔 Signal tetiklendi: Randevu oluşturuldu (ID: {instance.id})")
             logger.info(f"📧 Hasta: {instance.patient.email}, Psikolog: {instance.time_slot.psychologist.email}")
+            print(f"📧 [SIGNAL] Email gönderilecek - Hasta: {instance.patient.email}, Psikolog: {instance.time_slot.psychologist.email}")
             send_appointment_created_email(instance)
             logger.info(f"✅ Email gönderim fonksiyonu çağrıldı (Randevu ID: {instance.id})")
+            print(f"✅ [SIGNAL] Email gönderim fonksiyonu tamamlandı - ID: {instance.id}")
         except Exception as e:
-            logger.error(f"❌ Randevu oluşturma email'i gönderilirken hata: {str(e)}", exc_info=True)
+            error_msg = f"❌ Randevu oluşturma email'i gönderilirken hata: {str(e)}"
+            print(f"❌ [SIGNAL ERROR] {error_msg}")
+            logger.error(error_msg, exc_info=True)
+    else:
+        print(f"ℹ️ [SIGNAL] Randevu güncellendi (yeni oluşturulmadı) - ID: {instance.id if hasattr(instance, 'id') else 'N/A'}")
 
 
 @receiver(pre_delete, sender=Appointment)

@@ -43,15 +43,20 @@ def send_appointment_created_email(appointment):
     """
     Randevu oluşturulduğunda hasta ve psikologa email gönder (asenkron)
     """
+    print(f"📧 [EMAIL SERVICE] send_appointment_created_email çağrıldı - Appointment ID: {appointment.id}")
+    logger.info(f"📧 [EMAIL SERVICE] send_appointment_created_email çağrıldı - Appointment ID: {appointment.id}")
+    
     try:
         patient = appointment.patient
         psychologist = appointment.time_slot.psychologist
         time_slot = appointment.time_slot
+        print(f"📧 [EMAIL SERVICE] Randevu bilgileri alındı - Hasta: {patient.email}, Psikolog: {psychologist.email}")
         
         # Email gönderimi için gerekli bilgileri kontrol et
         if not settings.DEFAULT_FROM_EMAIL:
-            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
-            logger.warning(f"⚠️ EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+            warning_msg = f"⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor - EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}"
+            print(f"⚠️ [EMAIL SERVICE] {warning_msg}")
+            logger.warning(warning_msg)
             return
         
         # Email ayarlarını logla (debug için)
