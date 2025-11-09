@@ -24,9 +24,6 @@ ALLOWED_HOSTS = [
     'bk-api-evsk.onrender.com',
 ]
 
-# Render.com, projeyi çalıştırırken 'RENDER_EXTERNAL_HOSTNAME' adında
-# bir ortam değişkeni (environment variable) sağlar.
-# Bu değişkeni alıp ALLOWED_HOSTS listesine otomatik ekliyoruz.
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
