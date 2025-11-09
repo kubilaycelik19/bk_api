@@ -33,11 +33,22 @@ class IsPatientOwner(permissions.BasePermission):
     Objeyi (randevuyu) sadece hastanın kendisi görebilir/silebilir.
     """
     def has_object_permission(self, request, view, obj):
+        # DEBUG: Object permission check (create işlemi için obj None olabilir)
+        print(f"🔐 [PERMISSION] IsPatientOwner.has_object_permission() çağrıldı - User: {request.user.email if request.user.is_authenticated else 'Anonymous'}, Obj: {obj if obj else 'None (create)'}")
+        
+        # Create işlemi için obj None olabilir, bu durumda izin ver
+        if obj is None:
+            print(f"🔐 [PERMISSION] Create işlemi - İzin veriliyor")
+            return True
+        
         # Admin (psikolog) her şeyi görebilir
         if request.user.is_staff:
+            print(f"🔐 [PERMISSION] Admin kullanıcı - İzin veriliyor")
             return True
         # Eğer randevu objesi, giriş yapan hastaya aitse izin ver
-        return obj.patient == request.user # Sadece kendi randevusunu görebilir/silebilir
+        has_permission = obj.patient == request.user
+        print(f"🔐 [PERMISSION] Patient owner check: {has_permission}")
+        return has_permission
 
 class IsAuthenticatedOrOptions(BasePermission):
     """
@@ -45,11 +56,19 @@ class IsAuthenticatedOrOptions(BasePermission):
     Diğer tüm istekler için 'IsAuthenticated' (Giriş yapmış mı?) kontrolü yap.
     """
     def has_permission(self, request, view):
+        # DEBUG: Permission check
+        print(f"🔐 [PERMISSION] IsAuthenticatedOrOptions.has_permission() çağrıldı - Method: {request.method}, User: {request.user if request.user.is_authenticated else 'Anonymous'}")
+        
         # Uçuş öncesi (Preflight) OPTIONS isteğine her zaman izin ver
         if request.method == 'OPTIONS':
+            print(f"🔐 [PERMISSION] OPTIONS request - İzin veriliyor")
             return True
         # Diğer tüm istekler için (GET, POST, DELETE) token'ı kontrol et
-        return request.user and request.user.is_authenticated
+        is_authenticated = request.user and request.user.is_authenticated
+        print(f"🔐 [PERMISSION] İstek authenticated: {is_authenticated}")
+        if not is_authenticated:
+            print(f"🔐 [PERMISSION] ❌ İstek reddedildi - Kullanıcı authenticated değil")
+        return is_authenticated
 
 # --- VİEWSETLER ---
 
@@ -124,6 +143,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticatedOrOptions, IsPatientOwner] # Korumaları ekledik
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print(f"🔵 [VIEWSET] AppointmentViewSet oluşturuldu")
 
     def create(self, request, *args, **kwargs):
         """
