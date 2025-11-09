@@ -52,11 +52,6 @@ def _send_appointment_created_email_sync(appointment):
         psychologist_message = render_to_string('emails/appointment_created_psychologist.txt', psychologist_context)
         psychologist_html_message = render_to_string('emails/appointment_created_psychologist.html', psychologist_context)
         
-        # Superuser'ların email adreslerini al
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        superuser_emails = list(User.objects.filter(is_superuser=True, is_active=True).values_list('email', flat=True))
-        
         # Email gönder - Hasta
         if patient.email:
             send_mail(
@@ -80,19 +75,6 @@ def _send_appointment_created_email_sync(appointment):
                 fail_silently=False,
             )
             logger.info(f"Randevu oluşturma email'i gönderildi (Psikolog): {psychologist.email}")
-        
-        # Email gönder - Tüm superuser'lar (psikolog hariç, çünkü zaten gönderdik)
-        for superuser_email in superuser_emails:
-            if superuser_email and superuser_email != psychologist.email:
-                send_mail(
-                    subject=psychologist_subject,
-                    message=psychologist_message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[superuser_email],
-                    html_message=psychologist_html_message,
-                    fail_silently=False,
-                )
-                logger.info(f"Randevu oluşturma email'i gönderildi (Superuser): {superuser_email}")
             
     except Exception as e:
         logger.error(f"Randevu oluşturma email'i gönderilirken hata: {str(e)}", exc_info=True)
@@ -117,8 +99,8 @@ def send_appointment_created_email(appointment):
         except Exception as e:
             logger.error(f"Thread içinde email gönderilirken hata: {str(e)}", exc_info=True)
     
-    # Thread'i başlat (daemon=False çünkü email gönderimi önemli)
-    thread = threading.Thread(target=send_email_thread, daemon=False)
+    # Thread'i başlat (daemon=True çünkü ana process beklememeli)
+    thread = threading.Thread(target=send_email_thread, daemon=True)
     thread.start()
     logger.info(f"Email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
 
@@ -253,8 +235,8 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         except Exception as e:
             logger.error(f"Thread içinde iptal email'i gönderilirken hata: {str(e)}", exc_info=True)
     
-    # Thread'i başlat (daemon=False çünkü email gönderimi önemli)
-    thread = threading.Thread(target=send_email_thread, daemon=False)
+    # Thread'i başlat (daemon=True çünkü ana process beklememeli)
+    thread = threading.Thread(target=send_email_thread, daemon=True)
     thread.start()
     logger.info(f"İptal email gönderimi arka planda başlatıldı (Randevu ID: {appointment_id})")
 

@@ -205,25 +205,17 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         # Randevuyu yarat, 'patient'ı giriş yapan kullanıcıya,
         # 'time_slot'u ise bulduğumuz slota ata.
-        appointment = serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
-        
-        # Email gönderimini başlat (transaction commit edildikten sonra)
-        # Signal'ler de çalışacak ama burada direkt kontrol ediyoruz
-        from .email_service import send_appointment_created_email
-        from django.db import transaction
-        transaction.on_commit(lambda: send_appointment_created_email(appointment))
+        serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
+        # Email gönderimi signal'ler tarafından yapılıyor (post_save signal)
 
     def perform_destroy(self, instance):
         """
         Randevu silindiğinde (DELETE) slot'un is_booked durumunu False yap.
         Böylece slot tekrar müsait hale gelir ve diğer hastalar tarafından görülebilir.
         """
-        # Admin tarafından iptal edildiğini email servisine bildirmek için
-        cancelled_by_admin = self.request.user.is_staff
-        
-        # Email gönderimini başlat (randevu silinmeden önce bilgileri al)
-        from .email_service import send_appointment_cancelled_email
-        send_appointment_cancelled_email(instance, cancelled_by_admin)
+        # Admin tarafından iptal edildiğini signal'a bildirmek için
+        instance._cancelled_by_admin = self.request.user.is_staff
+        # Email gönderimi signal'ler tarafından yapılıyor (pre_delete signal)
         
         try:
             # Randevu ile ilişkili slotu al - eğer slot yoksa veya bozuk ilişki varsa hata verme
