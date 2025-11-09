@@ -17,10 +17,12 @@ def appointment_created_signal(sender, instance, created, **kwargs):
     """
     if created:
         try:
-            logger.info(f"Randevu oluşturuldu, email gönderiliyor: {instance.id}")
+            logger.info(f"🔔 Signal tetiklendi: Randevu oluşturuldu (ID: {instance.id})")
+            logger.info(f"📧 Hasta: {instance.patient.email}, Psikolog: {instance.time_slot.psychologist.email}")
             send_appointment_created_email(instance)
+            logger.info(f"✅ Email gönderim fonksiyonu çağrıldı (Randevu ID: {instance.id})")
         except Exception as e:
-            logger.error(f"Randevu oluşturma email'i gönderilirken hata: {str(e)}", exc_info=True)
+            logger.error(f"❌ Randevu oluşturma email'i gönderilirken hata: {str(e)}", exc_info=True)
 
 
 @receiver(pre_delete, sender=Appointment)

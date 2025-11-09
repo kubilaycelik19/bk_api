@@ -15,8 +15,14 @@ logger = logging.getLogger(__name__)
 def _send_email_sync(subject, message, from_email, recipient_list, html_message=None):
     """
     Email gönderimini senkron olarak yapan yardımcı fonksiyon
+    Django database connection'larını thread-safe hale getirmek için close_all() kullanıyoruz
     """
+    from django.db import connections
     try:
+        # Thread'de Django database connection'larını kapat
+        # Böylece yeni connection açılır ve thread-safe çalışır
+        connections.close_all()
+        
         send_mail(
             subject=subject,
             message=message,
@@ -25,9 +31,12 @@ def _send_email_sync(subject, message, from_email, recipient_list, html_message=
             html_message=html_message,
             fail_silently=False,
         )
-        logger.info(f"Email gönderildi: {recipient_list}")
+        logger.info(f"✅ Email başarıyla gönderildi: {recipient_list}")
     except Exception as e:
-        logger.error(f"Email gönderilirken hata: {str(e)}", exc_info=True)
+        logger.error(f"❌ Email gönderilirken hata: {str(e)}", exc_info=True)
+    finally:
+        # Thread sonunda connection'ları temizle
+        connections.close_all()
 
 
 def send_appointment_created_email(appointment):
@@ -41,8 +50,12 @@ def send_appointment_created_email(appointment):
         
         # Email gönderimi için gerekli bilgileri kontrol et
         if not settings.DEFAULT_FROM_EMAIL:
-            logger.warning("DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
+            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
+            logger.warning(f"⚠️ EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
             return
+        
+        # Email ayarlarını logla (debug için)
+        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL}, HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
         
         # Randevu bilgileri
         appointment_date = time_slot.start_time.strftime('%d %B %Y')
@@ -68,8 +81,12 @@ def send_appointment_created_email(appointment):
         }
         
         patient_subject = f'Randevu Onayı - {appointment_datetime}'
-        patient_message = render_to_string('emails/appointment_created_patient.txt', patient_context)
-        patient_html_message = render_to_string('emails/appointment_created_patient.html', patient_context)
+        try:
+            patient_message = render_to_string('emails/appointment_created_patient.txt', patient_context)
+            patient_html_message = render_to_string('emails/appointment_created_patient.html', patient_context)
+        except Exception as e:
+            logger.error(f"Email template render hatası (Hasta): {str(e)}", exc_info=True)
+            return
         
         # Psikolog email'i
         psychologist_context = {
@@ -88,23 +105,34 @@ def send_appointment_created_email(appointment):
         
         # Email'leri asenkron olarak gönder (threading ile)
         # Böylece web sayfası yavaşlamaz ve timeout olmaz
+        # Production'da thread'lerin çalışması için daemon=False kullanıyoruz
         if patient.email:
-            thread = threading.Thread(
-                target=_send_email_sync,
-                args=(patient_subject, patient_message, settings.DEFAULT_FROM_EMAIL, [patient.email], patient_html_message),
-                daemon=True
-            )
-            thread.start()
-            logger.info(f"Randevu oluşturma email'i gönderiliyor (Hasta): {patient.email}")
+            logger.info(f"📧 Hasta email'i hazırlanıyor: {patient.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(patient_subject, patient_message, settings.DEFAULT_FROM_EMAIL, [patient.email], patient_html_message),
+                    daemon=False,  # daemon=False: Thread ana process'ten bağımsız çalışır
+                    name=f"EmailThread-Patient-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Hasta email'i gönderiliyor - {patient.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Hasta): {str(e)}", exc_info=True)
         
         if psychologist.email:
-            thread = threading.Thread(
-                target=_send_email_sync,
-                args=(psychologist_subject, psychologist_message, settings.DEFAULT_FROM_EMAIL, [psychologist.email], psychologist_html_message),
-                daemon=True
-            )
-            thread.start()
-            logger.info(f"Randevu oluşturma email'i gönderiliyor (Psikolog): {psychologist.email}")
+            logger.info(f"📧 Psikolog email'i hazırlanıyor: {psychologist.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(psychologist_subject, psychologist_message, settings.DEFAULT_FROM_EMAIL, [psychologist.email], psychologist_html_message),
+                    daemon=False,  # daemon=False: Thread ana process'ten bağımsız çalışır
+                    name=f"EmailThread-Psychologist-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Psikolog email'i gönderiliyor - {psychologist.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Psikolog): {str(e)}", exc_info=True)
             
     except Exception as e:
         logger.error(f"Randevu oluşturma email'i gönderilirken hata: {str(e)}", exc_info=True)
@@ -121,8 +149,12 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         
         # Email gönderimi için gerekli bilgileri kontrol et
         if not settings.DEFAULT_FROM_EMAIL:
-            logger.warning("DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
+            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
+            logger.warning(f"⚠️ EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
             return
+        
+        # Email ayarlarını logla (debug için)
+        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL}, HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
         
         # Randevu bilgileri
         appointment_datetime = time_slot.start_time.strftime('%d %B %Y, %H:%M')
@@ -160,22 +192,32 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         
         # Email'leri asenkron olarak gönder (threading ile)
         if patient.email:
-            thread = threading.Thread(
-                target=_send_email_sync,
-                args=(patient_subject, patient_message, settings.DEFAULT_FROM_EMAIL, [patient.email], patient_html_message),
-                daemon=True
-            )
-            thread.start()
-            logger.info(f"Randevu iptal email'i gönderiliyor (Hasta): {patient.email}")
+            logger.info(f"📧 Hasta iptal email'i hazırlanıyor: {patient.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(patient_subject, patient_message, settings.DEFAULT_FROM_EMAIL, [patient.email], patient_html_message),
+                    daemon=False,  # daemon=False: Thread ana process'ten bağımsız çalışır
+                    name=f"EmailThread-Cancel-Patient-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Hasta iptal email'i gönderiliyor - {patient.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Hasta İptal): {str(e)}", exc_info=True)
         
         if psychologist.email:
-            thread = threading.Thread(
-                target=_send_email_sync,
-                args=(psychologist_subject, psychologist_message, settings.DEFAULT_FROM_EMAIL, [psychologist.email], psychologist_html_message),
-                daemon=True
-            )
-            thread.start()
-            logger.info(f"Randevu iptal email'i gönderiliyor (Psikolog): {psychologist.email}")
+            logger.info(f"📧 Psikolog iptal email'i hazırlanıyor: {psychologist.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(psychologist_subject, psychologist_message, settings.DEFAULT_FROM_EMAIL, [psychologist.email], psychologist_html_message),
+                    daemon=False,  # daemon=False: Thread ana process'ten bağımsız çalışır
+                    name=f"EmailThread-Cancel-Psychologist-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Psikolog iptal email'i gönderiliyor - {psychologist.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Psikolog İptal): {str(e)}", exc_info=True)
             
     except Exception as e:
         logger.error(f"Randevu iptal email'i gönderilirken hata: {str(e)}", exc_info=True)
