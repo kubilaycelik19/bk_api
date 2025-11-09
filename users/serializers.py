@@ -4,9 +4,9 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
-    # Username'i opsiyonel yapıyoruz - normal kullanıcılar için gerekli değil
-    # Backend'de email'den otomatik oluşturulacak
-    username = serializers.CharField(required=False, allow_blank=True)
+    # Username'i read_only yapıyoruz - frontend'den gönderilmez
+    # Backend'de email'den otomatik oluşturulacak (views.py'da)
+    username = serializers.CharField(read_only=True)
     # YENİ: Rol alanlarını SADECE OKUNABİLİR yapıyoruz
     # Dışarıdan POST ile 'is_staff' gönderilmesini engelliyoruz
     is_staff = serializers.BooleanField(read_only=True)

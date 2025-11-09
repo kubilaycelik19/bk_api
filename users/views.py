@@ -38,13 +38,19 @@ class UserViewSet(viewsets.ModelViewSet):
         # Şifreyi hash'leme işlemi
         hashed_password = make_password(password)
 
-        # Username yoksa email'den otomatik oluştur
+        # Username'i email'den otomatik oluştur
         # Normal kullanıcılar username belirlemek zorunda değil
-        # Sadece superuser oluştururken (admin panel) username gerekli olabilir
-        username = serializer.validated_data.get('username')
-        if not username or username.strip() == '':
-            # Email'den username oluştur (örn: user@example.com -> user)
-            username = email.split('@')[0]
+        # Frontend'den username gönderilmez (serializer'da read_only)
+        # Email'den username oluştur (örn: user@example.com -> user)
+        username = email.split('@')[0]
+        
+        # Eğer aynı username varsa, benzersizlik için email'in tamamını veya sayı ekle
+        # CustomUserManager zaten bu işlemi yapıyor ama burada da kontrol edelim
+        base_username = username
+        counter = 1
+        while CustomUser.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
 
         # Hashlenen şifreyi serializere koyarak kaydetme işlemi
         serializer.save(
