@@ -155,7 +155,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     # Custom exception handler - Tutarlı hata yönetimi için
-    'EXCEPTION_HANDLER': 'config.exceptions.custom_exception_handler',
+    #'EXCEPTION_HANDLER': 'config.exceptions.custom_exception_handler',
 }
 
 # Güvendiğimiz Frontend adreslerinin listesi
@@ -208,3 +208,24 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 
 # DRF Pagination (ileride eklenecek). Şimdilik kapalı, frontend dizi bekliyor.
+
+# Email Configuration
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+
+# Gmail adresin
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'pskbasakseref@gmail.com')
+
+# DİKKAT: Buraya ASLA normal Gmail şifreni yazma.
+# Google hesabından alacağın 16 haneli 'Uygulama Şifresi'ni
+# yerelde .env dosyasına, canlıda Render Environment'a ekle.
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+# Giden maillerde görünecek adres
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
+
+# Email template klasörü
+TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'templates')]

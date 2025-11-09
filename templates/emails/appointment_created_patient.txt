@@ -1,0 +1,18 @@
+Merhaba {{ patient_name }},
+
+Randevunuz başarıyla oluşturulmuştur!
+
+📅 Randevu Detayları:
+   Tarih: {{ appointment_date }}
+   Saat: {{ appointment_time }}
+   Psikolog: {{ psychologist_name }}
+
+📝 Notunuz:
+{{ notes }}
+
+Randevunuzdan 24 saat önce hatırlatma email'i alacaksınız.
+
+Randevunuzu değiştirmek veya iptal etmek için lütfen sistemimize giriş yapın.
+
+İyi günler dileriz!
+

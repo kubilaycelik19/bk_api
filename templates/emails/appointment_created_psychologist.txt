@@ -1,0 +1,16 @@
+Merhaba {{ psychologist_name }},
+
+Yeni bir randevu alındı!
+
+📅 Randevu Detayları:
+   Hasta: {{ patient_name }} ({{ patient_email }})
+   Tarih: {{ appointment_date }}
+   Saat: {{ appointment_time }}
+
+📝 Hasta Notu:
+{{ notes }}
+
+Lütfen randevu takviminizi kontrol edin.
+
+İyi çalışmalar!
+

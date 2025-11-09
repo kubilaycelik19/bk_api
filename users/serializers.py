@@ -23,4 +23,8 @@ class UserSerializer(serializers.ModelSerializer):
             'is_staff',   # Artık read_only
             'password'
         ]
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
 
