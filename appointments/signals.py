@@ -30,6 +30,8 @@ def appointment_cancelled_signal(sender, instance, **kwargs):
     """
     try:
         # Silme işlemini yapan kullanıcı admin mi kontrol et
+        # (Bu bilgiyi request'ten almak için farklı bir yaklaşım gerekebilir)
+        # Şimdilik genel bir kontrol yapıyoruz
         cancelled_by_admin = False
         if hasattr(instance, '_cancelled_by_admin'):
             cancelled_by_admin = instance._cancelled_by_admin

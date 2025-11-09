@@ -206,7 +206,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # Randevuyu yarat, 'patient'ı giriş yapan kullanıcıya,
         # 'time_slot'u ise bulduğumuz slota ata.
         serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
-        # Email gönderimi signal'ler tarafından yapılıyor (post_save signal)
 
     def perform_destroy(self, instance):
         """
@@ -215,7 +214,6 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         """
         # Admin tarafından iptal edildiğini signal'a bildirmek için
         instance._cancelled_by_admin = self.request.user.is_staff
-        # Email gönderimi signal'ler tarafından yapılıyor (pre_delete signal)
         
         try:
             # Randevu ile ilişkili slotu al - eğer slot yoksa veya bozuk ilişki varsa hata verme

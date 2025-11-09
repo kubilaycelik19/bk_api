@@ -216,13 +216,15 @@ EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 
 # Gmail adresin
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+# Gmail uygulama şifresi (16 haneli)
+# DİKKAT: Normal Gmail şifrenizi değil, Google Hesabınızdan alacağınız "Uygulama Şifresi"ni kullanın
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 # Giden maillerde görünecek adres
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-SERVER_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER if EMAIL_HOST_USER else None
+SERVER_EMAIL = EMAIL_HOST_USER if EMAIL_HOST_USER else None
 
 # Email template klasörü
 TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'templates')]
