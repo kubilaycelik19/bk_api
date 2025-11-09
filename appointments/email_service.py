@@ -49,8 +49,15 @@ def send_appointment_created_email(appointment):
         appointment_time = time_slot.start_time.strftime('%H:%M')
         appointment_datetime = time_slot.start_time.strftime('%d %B %Y, %H:%M')
         
+        # Hasta adını düzgün şekilde birleştir
+        patient_name_parts = []
+        if patient.first_name:
+            patient_name_parts.append(patient.first_name)
+        if patient.last_name:
+            patient_name_parts.append(patient.last_name)
+        patient_name = ' '.join(patient_name_parts) if patient_name_parts else patient.email
+        
         # Hasta email'i
-        patient_name = patient.first_name + ' ' + patient.last_name if (patient.first_name or patient.last_name) else patient.email
         patient_context = {
             'patient_name': patient_name,
             'appointment_date': appointment_date,
@@ -67,7 +74,7 @@ def send_appointment_created_email(appointment):
         # Psikolog email'i
         psychologist_context = {
             'psychologist_name': psychologist.first_name or psychologist.email,
-            'patient_name': patient.first_name or patient.email,
+            'patient_name': patient_name,
             'patient_email': patient.email,
             'appointment_date': appointment_date,
             'appointment_time': appointment_time,
@@ -75,7 +82,7 @@ def send_appointment_created_email(appointment):
             'notes': appointment.notes or 'Not bırakılmadı',
         }
         
-        psychologist_subject = f'Yeni Randevu - {patient.first_name or patient.email} - {appointment_datetime}'
+        psychologist_subject = f'Yeni Randevu - {patient_name} - {appointment_datetime}'
         psychologist_message = render_to_string('emails/appointment_created_psychologist.txt', psychologist_context)
         psychologist_html_message = render_to_string('emails/appointment_created_psychologist.html', psychologist_context)
         
@@ -120,9 +127,17 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         # Randevu bilgileri
         appointment_datetime = time_slot.start_time.strftime('%d %B %Y, %H:%M')
         
+        # Hasta adını düzgün şekilde birleştir
+        patient_name_parts = []
+        if patient.first_name:
+            patient_name_parts.append(patient.first_name)
+        if patient.last_name:
+            patient_name_parts.append(patient.last_name)
+        patient_name = ' '.join(patient_name_parts) if patient_name_parts else patient.email
+        
         # Hasta email'i
         patient_context = {
-            'patient_name': patient.first_name or patient.email,
+            'patient_name': patient_name,
             'appointment_datetime': appointment_datetime,
             'cancelled_by_admin': cancelled_by_admin,
         }
@@ -134,12 +149,12 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         # Psikolog email'i
         psychologist_context = {
             'psychologist_name': psychologist.first_name or psychologist.email,
-            'patient_name': patient.first_name or patient.email,
+            'patient_name': patient_name,
             'appointment_datetime': appointment_datetime,
             'cancelled_by_admin': cancelled_by_admin,
         }
         
-        psychologist_subject = f'Randevu İptal Edildi - {patient.first_name or patient.email} - {appointment_datetime}'
+        psychologist_subject = f'Randevu İptal Edildi - {patient_name} - {appointment_datetime}'
         psychologist_message = render_to_string('emails/appointment_cancelled_psychologist.txt', psychologist_context)
         psychologist_html_message = render_to_string('emails/appointment_cancelled_psychologist.html', psychologist_context)
         
