@@ -16,12 +16,27 @@ def _send_email_sync(subject, message, from_email, recipient_list, html_message=
     """
     Email gönderimini senkron olarak yapan yardımcı fonksiyon
     Django database connection'larını thread-safe hale getirmek için close_all() kullanıyoruz
+    
+    Render.com free tier'da outbound SMTP bağlantıları engellenmiş olabilir.
+    Bu durumda email gönderilemez ama uygulama çalışmaya devam eder.
     """
     from django.db import connections
+    import socket
+    
+    # Email göndermeyi devre dışı bırakma kontrolü (environment variable ile)
+    if settings.EMAIL_ENABLED == False:
+        logger.warning("⚠️ Email gönderme devre dışı bırakılmış (EMAIL_ENABLED=False)")
+        return
+    
     try:
         # Thread'de Django database connection'larını kapat
         # Böylece yeni connection açılır ve thread-safe çalışır
         connections.close_all()
+        
+        # Email ayarları kontrolü
+        if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_USER:
+            logger.warning("⚠️ Email ayarları eksik - Email gönderilemiyor")
+            return
         
         send_mail(
             subject=subject,
@@ -29,9 +44,20 @@ def _send_email_sync(subject, message, from_email, recipient_list, html_message=
             from_email=from_email,
             recipient_list=recipient_list,
             html_message=html_message,
-            fail_silently=False,
+            fail_silently=True,  # Hata durumunda exception fırlatma, sadece False dön
         )
         logger.info(f"✅ Email başarıyla gönderildi: {recipient_list}")
+    except socket.gaierror as e:
+        # DNS çözümleme hatası (network unreachable gibi)
+        logger.error(f"❌ Email gönderilemedi - Network hatası (Render.com free tier SMTP engeli olabilir): {str(e)}")
+        logger.warning("💡 Çözüm: SendGrid, Mailgun veya AWS SES gibi bir email servisi kullanın. Detaylar: EMAIL_SOLUTIONS.md")
+    except OSError as e:
+        # Network is unreachable hatası
+        if "Network is unreachable" in str(e) or "101" in str(e):
+            logger.error(f"❌ Email gönderilemedi - Network is unreachable (Render.com free tier SMTP engeli)")
+            logger.warning("💡 Çözüm: SendGrid, Mailgun veya AWS SES gibi bir email servisi kullanın. Detaylar: EMAIL_SOLUTIONS.md")
+        else:
+            logger.error(f"❌ Email gönderilirken hata: {str(e)}", exc_info=True)
     except Exception as e:
         logger.error(f"❌ Email gönderilirken hata: {str(e)}", exc_info=True)
     finally:
