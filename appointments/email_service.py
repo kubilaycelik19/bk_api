@@ -18,17 +18,10 @@ def _send_email_sync(subject, message, from_email, recipient_list, html_message=
     Django database connection'larını thread-safe hale getirmek için close_all() kullanıyoruz
     """
     from django.db import connections
-    import socket
-    
     try:
         # Thread'de Django database connection'larını kapat
         # Böylece yeni connection açılır ve thread-safe çalışır
         connections.close_all()
-        
-        # Email ayarları kontrolü
-        if not settings.DEFAULT_FROM_EMAIL or not settings.EMAIL_HOST_USER:
-            logger.warning("⚠️ Email ayarları eksik - Email gönderilemiyor")
-            return
         
         send_mail(
             subject=subject,
@@ -39,17 +32,8 @@ def _send_email_sync(subject, message, from_email, recipient_list, html_message=
             fail_silently=False,
         )
         logger.info(f"✅ Email başarıyla gönderildi: {recipient_list}")
-    except socket.gaierror as e:
-        # DNS çözümleme hatası (network unreachable gibi)
-        logger.error(f"❌ Email gönderilemedi - Network hatası: {str(e)}", exc_info=True)
-        # Hata durumunda exception'ı yakala ama uygulama çalışmaya devam etsin
-    except OSError as e:
-        # Network is unreachable hatası
-        logger.error(f"❌ Email gönderilirken network hatası: {str(e)}", exc_info=True)
-        # Hata durumunda exception'ı yakala ama uygulama çalışmaya devam etsin
     except Exception as e:
         logger.error(f"❌ Email gönderilirken hata: {str(e)}", exc_info=True)
-        # Hata durumunda exception'ı yakala ama uygulama çalışmaya devam etsin
     finally:
         # Thread sonunda connection'ları temizle
         connections.close_all()
@@ -70,13 +54,19 @@ def send_appointment_created_email(appointment):
         
         # Email gönderimi için gerekli bilgileri kontrol et
         if not settings.DEFAULT_FROM_EMAIL:
-            warning_msg = f"⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor - EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}"
+            warning_msg = "⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor (SendGrid için doğrulanmış email adresi gerekli)"
+            print(f"⚠️ [EMAIL SERVICE] {warning_msg}")
+            logger.warning(warning_msg)
+            return
+        
+        if not getattr(settings, 'SENDGRID_API_KEY', None):
+            warning_msg = "⚠️ SENDGRID_API_KEY ayarlanmamış, email gönderilemiyor"
             print(f"⚠️ [EMAIL SERVICE] {warning_msg}")
             logger.warning(warning_msg)
             return
         
         # Email ayarlarını logla (debug için)
-        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL}, HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
+        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL} (SendGrid)")
         
         # Randevu bilgileri
         appointment_date = time_slot.start_time.strftime('%d %B %Y')
@@ -170,12 +160,15 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
         
         # Email gönderimi için gerekli bilgileri kontrol et
         if not settings.DEFAULT_FROM_EMAIL:
-            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor")
-            logger.warning(f"⚠️ EMAIL_HOST_USER: {settings.EMAIL_HOST_USER}")
+            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor (SendGrid için doğrulanmış email adresi gerekli)")
+            return
+        
+        if not getattr(settings, 'SENDGRID_API_KEY', None):
+            logger.warning("⚠️ SENDGRID_API_KEY ayarlanmamış, email gönderilemiyor")
             return
         
         # Email ayarlarını logla (debug için)
-        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL}, HOST={settings.EMAIL_HOST}, PORT={settings.EMAIL_PORT}")
+        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL} (SendGrid)")
         
         # Randevu bilgileri
         appointment_datetime = time_slot.start_time.strftime('%d %B %Y, %H:%M')

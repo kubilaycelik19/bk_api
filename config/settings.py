@@ -195,31 +195,17 @@ USE_X_FORWARDED_HOST = True
 
 # DRF Pagination (ileride eklenecek). Şimdilik kapalı, frontend dizi bekliyor.
 
-# Email Configuration
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+# Email Configuration - SendGrid
+# SendGrid API kullanıyoruz (Render'da SMTP portu bloklu olduğu için)
+# Bu kısımlar .env dosyasından çekilecek
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 
-# SSL/TLS Configuration
-# Render'da port 465 (SSL) çalışabilir, port 587 (TLS) bloklanmış olabilir
-# Port 465 kullanıyorsanız: EMAIL_USE_SSL=True, EMAIL_USE_TLS=False
-# Port 587 kullanıyorsanız: EMAIL_USE_TLS=True, EMAIL_USE_SSL=False
-EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True' if not EMAIL_USE_SSL else False
+# Giden maillerde görünecek adres (SendGrid'de doğrulanmış email adresi)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', '')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-# Gmail adresin (.env dosyasından çekiliyor)
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-
-# Gmail uygulama şifresi (16 haneli) - .env dosyasından çekiliyor
-# DİKKAT: Normal Gmail şifrenizi değil, Google Hesabınızdan alacağınız "Uygulama Şifresi"ni kullanın
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-
-# Email timeout (Render'da network sorunları için)
-EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '10'))  # 10 saniye
-
-# Giden maillerde görünecek adres
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER if EMAIL_HOST_USER else None
-SERVER_EMAIL = EMAIL_HOST_USER if EMAIL_HOST_USER else None
+# Email backend - SendGrid için custom backend kullanıyoruz
+EMAIL_BACKEND = 'appointments.email_backend.SendGridBackend'
 
 # Logging Configuration
 LOGGING = {
