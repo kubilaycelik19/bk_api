@@ -3,12 +3,21 @@ Merhaba {{ psychologist_name }},
 Yeni bir randevu alındı!
 
 📅 Randevu Detayları:
-   Hasta: {{ patient_name }} ({{ patient_email }})
+   Hasta: {{ patient_name }}
+   Email: {{ patient_email }}
+   Telefon: {{ patient_phone }}
    Tarih: {{ appointment_date }}
    Saat: {{ appointment_time }}
 
 📝 Hasta Notu:
 {{ notes }}
+
+💳 ÖDEME BİLGİSİ:
+Not: Hasta randevudan 24 saat (1 gün) önce ödeme yapmalıdır.
+
+Ödeme Yapılması Gereken Tarih ve Saat: {{ payment_deadline_datetime }}
+
+Ödeme zamanında yapılmazsa randevu otomatik olarak iptal edilecektir.
 
 Lütfen randevu takviminizi kontrol edin.
 

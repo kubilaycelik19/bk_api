@@ -68,10 +68,31 @@ def send_appointment_created_email(appointment):
         # Email ayarlarını logla (debug için)
         logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL} (SendGrid)")
         
+        # Türkçe ay isimleri mapping'i
+        turkish_months = {
+            'January': 'Ocak', 'February': 'Şubat', 'March': 'Mart',
+            'April': 'Nisan', 'May': 'Mayıs', 'June': 'Haziran',
+            'July': 'Temmuz', 'August': 'Ağustos', 'September': 'Eylül',
+            'October': 'Ekim', 'November': 'Kasım', 'December': 'Aralık'
+        }
+        
+        def format_turkish_date(dt):
+            """Tarihi Türkçe formatında döndürür: gün ay yıl, saat:dakika"""
+            date_str = dt.strftime('%d %B %Y')
+            time_str = dt.strftime('%H:%M')
+            # İngilizce ay ismini Türkçe'ye çevir
+            for en_month, tr_month in turkish_months.items():
+                date_str = date_str.replace(en_month, tr_month)
+            return date_str, time_str
+        
         # Randevu bilgileri
-        appointment_date = time_slot.start_time.strftime('%d %B %Y')
-        appointment_time = time_slot.start_time.strftime('%H:%M')
-        appointment_datetime = time_slot.start_time.strftime('%d %B %Y, %H:%M')
+        appointment_date, appointment_time = format_turkish_date(time_slot.start_time)
+        appointment_datetime = f"{appointment_date}, {appointment_time}"
+        
+        # Ödeme tarihi (randevudan 24 saat önce)
+        payment_deadline = time_slot.start_time - timedelta(hours=24)
+        payment_deadline_date, payment_deadline_time = format_turkish_date(payment_deadline)
+        payment_deadline_datetime = f"{payment_deadline_date}, {payment_deadline_time}"
         
         # Hasta adını düzgün şekilde birleştir
         patient_name_parts = []
@@ -87,6 +108,9 @@ def send_appointment_created_email(appointment):
             'appointment_date': appointment_date,
             'appointment_time': appointment_time,
             'appointment_datetime': appointment_datetime,
+            'payment_deadline_date': payment_deadline_date,
+            'payment_deadline_time': payment_deadline_time,
+            'payment_deadline_datetime': payment_deadline_datetime,
             'notes': appointment.notes or 'Not bırakılmadı',
             'psychologist_name': psychologist.first_name or psychologist.email,
         }
@@ -104,9 +128,13 @@ def send_appointment_created_email(appointment):
             'psychologist_name': psychologist.first_name or psychologist.email,
             'patient_name': patient_name,
             'patient_email': patient.email,
+            'patient_phone': patient.phone_number or 'Belirtilmemiş',
             'appointment_date': appointment_date,
             'appointment_time': appointment_time,
             'appointment_datetime': appointment_datetime,
+            'payment_deadline_date': payment_deadline_date,
+            'payment_deadline_time': payment_deadline_time,
+            'payment_deadline_datetime': payment_deadline_datetime,
             'notes': appointment.notes or 'Not bırakılmadı',
         }
         

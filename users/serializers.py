@@ -4,23 +4,21 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
-    # Username'i read_only yapıyoruz - frontend'den gönderilmez
-    # Backend'de email'den otomatik oluşturulacak (views.py'da)
-    username = serializers.CharField(read_only=True)
-    # YENİ: Rol alanlarını SADECE OKUNABİLİR yapıyoruz
+    # Rol alanlarını SADECE OKUNABİLİR yapıyoruz
     # Dışarıdan POST ile 'is_staff' gönderilmesini engelliyoruz
     is_staff = serializers.BooleanField(read_only=True)
     is_patient = serializers.BooleanField(read_only=True)
+    
     class Meta:
         model = CustomUser
         fields = [
             'id', 
             'email', 
-            'username', 
             'first_name', 
             'last_name', 
-            'is_patient', # Artık read_only
-            'is_staff',   # Artık read_only
+            'phone_number',
+            'is_patient',
+            'is_staff',
             'password'
         ]
         extra_kwargs = {

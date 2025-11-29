@@ -33,29 +33,15 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # POST ile gelen 'password' alanını alma işlemi
         password = serializer.validated_data.get('password')
-        email = serializer.validated_data.get('email')
 
         # Şifreyi hash'leme işlemi
         hashed_password = make_password(password)
 
-        # Username'i email'den otomatik oluştur
-        # Normal kullanıcılar username belirlemek zorunda değil
-        # Frontend'den username gönderilmez (serializer'da read_only)
-        # Email'den username oluştur (örn: user@example.com -> user)
-        username = email.split('@')[0]
-        
-        # Eğer aynı username varsa, benzersizlik için email'in tamamını veya sayı ekle
-        # CustomUserManager zaten bu işlemi yapıyor ama burada da kontrol edelim
-        base_username = username
-        counter = 1
-        while CustomUser.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
-
         # Hashlenen şifreyi serializere koyarak kaydetme işlemi
+        # Username kullanmıyoruz - sadece email, ad, soyad ve telefon numarası ile çalışıyoruz
         serializer.save(
                 password=hashed_password,
-                username=username,
+                username=None,
                 is_patient=True, 
                 is_staff=False
             )

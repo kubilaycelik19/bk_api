@@ -38,5 +38,5 @@ urlpatterns = [
     # /api/v1/ ile başlayan tüm istekleri users.urls'e yönlendir. (Kullanıcı CRUD işlemleri için)
     path('api/v1/', include('users.urls')), # 'users' uygulamasının URL'lerini dahil et. users modülü.
     path('api/v1/', include('appointments.urls')), # 'appointments' uygulamasının URL'lerini dahil et. appointments modülü.
-
+    path('api/v1/', include('ventings.urls')), # 'ventings' uygulamasının URL'lerini dahil et.
 ]

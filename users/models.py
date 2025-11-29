@@ -6,23 +6,24 @@ from django.contrib.auth.models import BaseUserManager
 
 class CustomUserManager(BaseUserManager):
     """
-    'email' alanını 'username' olarak kullanan
-    özel kullanıcı yöneticimiz. (DOĞRU VERSİYON)
+    Email tabanlı özel kullanıcı yöneticimiz.
+    Username kullanmıyoruz - sadece email, ad, soyad ve telefon numarası ile çalışıyoruz.
     """
 
     def _create_user(self, email, password, **extra_fields):
         """
         Email ve şifre ile kullanıcı yaratan temel fonksiyon.
+        Username kullanılmıyor - sadece email, ad, soyad ve telefon numarası ile çalışıyoruz.
         """
         if not email:
             raise ValueError('Email alanı zorunludur')
 
         email = self.normalize_email(email)
+        
+        # Username'i extra_fields'tan çıkar - artık kullanmıyoruz
+        extra_fields.pop('username', None)
 
-        # username'i extra_fields'tan al, yoksa email'den üret
-        username = extra_fields.pop('username', email.split('@')[0])
-
-        user = self.model(email=email, username=username, **extra_fields)
+        user = self.model(email=email, username=None, **extra_fields)
         user.set_password(password) # Şifreyi GÜVENLİ olarak hash'ler
         user.save(using=self._db)
         return user
@@ -51,15 +52,18 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser is_superuser=True olmalıdır.')
 
-        # Biz sadece email ve password'ü _create_user'a yolluyoruz.
-        # _create_user da username'i extra_fields'tan 'pop' ile çekecek.
-
         return self._create_user(email, password, **extra_fields)
 
 class CustomUser(AbstractUser):
     # Kullanıcı adı yerine email ile giriş yapılacak
-
+    
+    # Username field'ını override ediyoruz - artık kullanılmıyor
+    username = models.CharField(max_length=150, blank=True, null=True, unique=False)
+    
     email = models.EmailField(unique=True)
+    
+    # İletişim bilgileri
+    phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name='Telefon Numarası')
 
     # Roller
     is_patient = models.BooleanField(default=True)  # Hasta rolü
@@ -67,7 +71,7 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email' # Giriş için email kullanılır
-    REQUIRED_FIELDS = [] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz). Username zorunluluğu geçici olarak kaldırıldı.
+    REQUIRED_FIELDS = [] # Zorunlu alanlar (email zaten USERNAME_FIELD olduğu için burada yer almaz)
 
     def __str__(self):
         return self.email
