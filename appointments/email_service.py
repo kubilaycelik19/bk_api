@@ -263,3 +263,143 @@ def send_appointment_cancelled_email(appointment, cancelled_by_admin=False):
             
     except Exception as e:
         logger.error(f"Randevu iptal email'i gönderilirken hata: {str(e)}", exc_info=True)
+
+
+def send_payment_completed_email(payment):
+    """
+    Ödeme tamamlandığında hasta ve psikologa email gönder (asenkron)
+    """
+    try:
+        appointment = payment.appointment
+        patient = appointment.patient
+        psychologist = appointment.time_slot.psychologist
+        time_slot = appointment.time_slot
+        
+        # Email gönderimi için gerekli bilgileri kontrol et
+        if not settings.DEFAULT_FROM_EMAIL:
+            logger.warning("⚠️ DEFAULT_FROM_EMAIL ayarlanmamış, email gönderilemiyor (SendGrid için doğrulanmış email adresi gerekli)")
+            return
+        
+        if not getattr(settings, 'SENDGRID_API_KEY', None):
+            logger.warning("⚠️ SENDGRID_API_KEY ayarlanmamış, email gönderilemiyor")
+            return
+        
+        # Email ayarlarını logla (debug için)
+        logger.info(f"📧 Email ayarları: FROM={settings.DEFAULT_FROM_EMAIL} (SendGrid)")
+        
+        # Türkçe ay isimleri mapping'i
+        turkish_months = {
+            'January': 'Ocak', 'February': 'Şubat', 'March': 'Mart',
+            'April': 'Nisan', 'May': 'Mayıs', 'June': 'Haziran',
+            'July': 'Temmuz', 'August': 'Ağustos', 'September': 'Eylül',
+            'October': 'Ekim', 'November': 'Kasım', 'December': 'Aralık'
+        }
+        
+        def format_turkish_date(dt):
+            """Tarihi Türkçe formatında döndürür: gün ay yıl, saat:dakika"""
+            date_str = dt.strftime('%d %B %Y')
+            time_str = dt.strftime('%H:%M')
+            # İngilizce ay ismini Türkçe'ye çevir
+            for en_month, tr_month in turkish_months.items():
+                date_str = date_str.replace(en_month, tr_month)
+            return date_str, time_str
+        
+        # Randevu bilgileri
+        appointment_date, appointment_time = format_turkish_date(time_slot.start_time)
+        appointment_datetime = f"{appointment_date}, {appointment_time}"
+        
+        # Ödeme tarihi
+        payment_datetime = payment.paid_at if payment.paid_at else timezone.now()
+        payment_date, payment_time = format_turkish_date(payment_datetime)
+        payment_datetime_str = f"{payment_date}, {payment_time}"
+        
+        # Hasta adını düzgün şekilde birleştir
+        patient_name_parts = []
+        if patient.first_name:
+            patient_name_parts.append(patient.first_name)
+        if patient.last_name:
+            patient_name_parts.append(patient.last_name)
+        patient_name = ' '.join(patient_name_parts) if patient_name_parts else patient.email
+        
+        # Ödeme yöntemi
+        payment_method = payment.payment_method or 'Kredi/Banka Kartı'
+        if payment_method == 'card':
+            payment_method = 'Kredi/Banka Kartı'
+        
+        # Hasta email'i
+        patient_context = {
+            'patient_name': patient_name,
+            'payment_amount': f"{payment.amount:.2f}",
+            'payment_date': payment_date,
+            'payment_time': payment_time,
+            'payment_datetime': payment_datetime_str,
+            'payment_method': payment_method,
+            'appointment_date': appointment_date,
+            'appointment_time': appointment_time,
+            'appointment_datetime': appointment_datetime,
+            'psychologist_name': psychologist.first_name or psychologist.email,
+        }
+        
+        patient_subject = f'Ödeme Onayı - {appointment_datetime}'
+        try:
+            patient_message = render_to_string('emails/payment_completed_patient.txt', patient_context)
+            patient_html_message = render_to_string('emails/payment_completed_patient.html', patient_context)
+        except Exception as e:
+            logger.error(f"Email template render hatası (Hasta): {str(e)}", exc_info=True)
+            return
+        
+        # Psikolog email'i
+        psychologist_context = {
+            'psychologist_name': psychologist.first_name or psychologist.email,
+            'patient_name': patient_name,
+            'patient_email': patient.email,
+            'patient_phone': patient.phone_number or 'Belirtilmemiş',
+            'payment_amount': f"{payment.amount:.2f}",
+            'payment_date': payment_date,
+            'payment_time': payment_time,
+            'payment_datetime': payment_datetime_str,
+            'payment_method': payment_method,
+            'appointment_date': appointment_date,
+            'appointment_time': appointment_time,
+            'appointment_datetime': appointment_datetime,
+        }
+        
+        psychologist_subject = f'Randevu Ödemesi Tamamlandı - {patient_name} - {appointment_datetime}'
+        try:
+            psychologist_message = render_to_string('emails/payment_completed_psychologist.txt', psychologist_context)
+            psychologist_html_message = render_to_string('emails/payment_completed_psychologist.html', psychologist_context)
+        except Exception as e:
+            logger.error(f"Email template render hatası (Psikolog): {str(e)}", exc_info=True)
+            return
+        
+        # Email'leri asenkron olarak gönder (threading ile)
+        if patient.email:
+            logger.info(f"📧 Hasta ödeme email'i hazırlanıyor: {patient.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(patient_subject, patient_message, settings.DEFAULT_FROM_EMAIL, [patient.email], patient_html_message),
+                    daemon=False,
+                    name=f"EmailThread-Payment-Patient-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Hasta ödeme email'i gönderiliyor - {patient.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Hasta Ödeme): {str(e)}", exc_info=True)
+        
+        if psychologist.email:
+            logger.info(f"📧 Psikolog ödeme email'i hazırlanıyor: {psychologist.email}")
+            try:
+                thread = threading.Thread(
+                    target=_send_email_sync,
+                    args=(psychologist_subject, psychologist_message, settings.DEFAULT_FROM_EMAIL, [psychologist.email], psychologist_html_message),
+                    daemon=False,
+                    name=f"EmailThread-Payment-Psychologist-{appointment.id}"
+                )
+                thread.start()
+                logger.info(f"✅ Thread başlatıldı: Psikolog ödeme email'i gönderiliyor - {psychologist.email}")
+            except Exception as e:
+                logger.error(f"❌ Thread başlatılamadı (Psikolog Ödeme): {str(e)}", exc_info=True)
+            
+    except Exception as e:
+        logger.error(f"Ödeme tamamlanma email'i gönderilirken hata: {str(e)}", exc_info=True)

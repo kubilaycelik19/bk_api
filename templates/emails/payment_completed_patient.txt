@@ -1,0 +1,20 @@
+Merhaba {{ patient_name }},
+
+Randevu ödemeniz başarıyla tamamlanmıştır!
+
+💳 ÖDEME ONAYI:
+   Ödeme Tutarı: {{ payment_amount }} TL
+   Ödeme Tarihi: {{ payment_date }}
+   Ödeme Saati: {{ payment_time }}
+   Ödeme Yöntemi: {{ payment_method }}
+
+📅 RANDEVU DETAYLARI:
+   Tarih: {{ appointment_date }}
+   Saat: {{ appointment_time }}
+   Psikolog: {{ psychologist_name }}
+
+Randevunuz onaylanmıştır. Belirtilen tarih ve saatte randevunuza gelebilirsiniz.
+
+Randevunuzu değiştirmek veya iptal etmek için lütfen sistemimize giriş yapın.
+
+İyi günler dileriz!

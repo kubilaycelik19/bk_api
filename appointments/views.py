@@ -1,14 +1,15 @@
 from urllib import request
 from django.shortcuts import render
 from django.db.models import Q
+from decimal import Decimal
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets, permissions, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, BasePermission
 from rest_framework.response import Response
 
-from .models import AvailableTimeSlot, Appointment
-from .serializers import AvailableTimeSlotSerializer, AppointmentSerializer
+from .models import AvailableTimeSlot, Appointment, AppointmentPrice
+from .serializers import AvailableTimeSlotSerializer, AppointmentSerializer, AppointmentPriceSerializer
 
 from datetime import datetime
 
@@ -252,7 +253,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # 'time_slot'u ise bulduğumuz slota ata.
         print(f"🔄 [VIEW] Randevu oluşturuluyor - User: {user.email}, Slot: {slot.id}")
         print(f"🔄 [VIEW] serializer.save() çağrılmadan önce...")
-        appointment = serializer.save(patient=user, time_slot=slot) # Randevuyu kaydet
+        appointment = serializer.save(patient=user, time_slot=slot, status='pending_payment') # Randevuyu kaydet, status'u açıkça set et
         print(f"✅ [VIEW] Randevu oluşturuldu - ID: {appointment.id}")
         print(f"✅ [VIEW] Appointment.patient: {appointment.patient.email}")
         print(f"✅ [VIEW] Appointment.time_slot: {appointment.time_slot.id}")
@@ -291,3 +292,65 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         # ModelViewSet'in normal destroy işlemini çağır (randevuyu sil)
         super().perform_destroy(instance)
+
+
+class AppointmentPriceViewSet(viewsets.ModelViewSet):
+    """
+    Randevu saatlik ucret ayari - Sadece admin erisim
+    Singleton pattern: Sadece bir tane fiyat ayari olabilir
+    """
+    serializer_class = AppointmentPriceSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    def get_queryset(self):
+        # Singleton: Sadece bir tane fiyat ayari var
+        price_setting = AppointmentPrice.objects.first()
+        if price_setting:
+            return AppointmentPrice.objects.filter(id=price_setting.id)
+        # Yoksa default deger ile olustur
+        default_price = AppointmentPrice.objects.create(hourly_rate=Decimal('500.00'))
+        return AppointmentPrice.objects.filter(id=default_price.id)
+    
+    def list(self, request, *args, **kwargs):
+        """
+        List yerine tek kayit dondur (singleton)
+        """
+        queryset = self.get_queryset()
+        if queryset.exists():
+            serializer = self.get_serializer(queryset.first())
+            return Response([serializer.data])
+        return Response([])
+    
+    def retrieve(self, request, *args, **kwargs):
+        """
+        ID olmadan da erisilebilir - her zaman tek kayit
+        """
+        instance = self.get_queryset().first()
+        if instance:
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        return Response({'detail': 'Fiyat ayari bulunamadi.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Create yerine update yap (singleton pattern)
+        """
+        existing = AppointmentPrice.objects.first()
+        if existing:
+            # Mevcut kaydi guncelle
+            serializer = self.get_serializer(existing, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(updated_by=request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # Yoksa yeni olustur
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(updated_by=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def perform_update(self, serializer):
+        """
+        Fiyat ayari guncellenirken
+        """
+        serializer.save(updated_by=self.request.user)

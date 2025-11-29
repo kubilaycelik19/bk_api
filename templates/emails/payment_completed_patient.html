@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .info-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #10b981; }
+        .success-box { background: #d1fae5; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #10b981; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Ödemeniz Tamamlandı!</h1>
+        </div>
+        <div class="content">
+            <p>Merhaba <strong>{{ patient_name }}</strong>,</p>
+            
+            <p>Randevu ödemeniz başarıyla tamamlanmıştır!</p>
+            
+            <div class="success-box">
+                <h3 style="margin-top: 0; color: #059669;">💳 Ödeme Onayı</h3>
+                <p style="font-size: 18px; margin: 10px 0;"><strong>Ödeme Tutarı:</strong> <span style="color: #059669; font-weight: bold;">{{ payment_amount }} TL</span></p>
+                <p><strong>Ödeme Tarihi:</strong> {{ payment_date }}</p>
+                <p><strong>Ödeme Saati:</strong> {{ payment_time }}</p>
+                <p><strong>Ödeme Yöntemi:</strong> {{ payment_method }}</p>
+            </div>
+            
+            <div class="info-box">
+                <h3 style="margin-top: 0; color: #667eea;">📅 Randevu Detayları</h3>
+                <p><strong>Tarih:</strong> {{ appointment_date }}</p>
+                <p><strong>Saat:</strong> {{ appointment_time }}</p>
+                <p><strong>Psikolog:</strong> {{ psychologist_name }}</p>
+            </div>
+            
+            <p>Randevunuz onaylanmıştır. Belirtilen tarih ve saatte randevunuza gelebilirsiniz.</p>
+            
+            <p>Randevunuzu değiştirmek veya iptal etmek için lütfen sistemimize giriş yapın.</p>
+            
+            <p>İyi günler dileriz!</p>
+        </div>
+        <div class="footer">
+            <p>Bu email otomatik olarak gönderilmiştir.</p>
+        </div>
+    </div>
+</body>
+</html>

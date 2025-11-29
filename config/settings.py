@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'appointments.apps.AppointmentsConfig',
     'ventings.apps.VentingsConfig',
+    'payments.apps.PaymentsConfig',
 ]
 
 MIDDLEWARE = [
@@ -207,6 +208,17 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Email backend - SendGrid için custom backend kullanıyoruz
 EMAIL_BACKEND = 'appointments.email_backend.SendGridBackend'
+
+# iYZICO Configuration
+IYZICO_API_KEY = os.environ.get('IYZICO_API_KEY', '')
+IYZICO_SECRET_KEY = os.environ.get('SANDBOX_SECRET_KEY', '')
+# iyzico kutuphanesi sadece hostname istiyor, protokol olmadan
+# .env'de https://sandbox-api.iyzipay.com veya sandbox-api.iyzipay.com yazabilirsiniz
+# Her iki durumda da calisacak sekilde ayarladik
+IYZICO_BASE_URL = os.environ.get('IYZICO_BASE_URL', 'sandbox-api.iyzipay.com')
+
+# Frontend URL (callback için)
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 # Logging Configuration
 LOGGING = {

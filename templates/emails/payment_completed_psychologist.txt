@@ -1,0 +1,20 @@
+Merhaba {{ psychologist_name }},
+
+{{ patient_name }} için randevu ödemesi başarıyla tamamlanmıştır.
+
+💳 ÖDEME DETAYLARI:
+   Ödeme Tutarı: {{ payment_amount }} TL
+   Ödeme Tarihi: {{ payment_date }}
+   Ödeme Saati: {{ payment_time }}
+   Ödeme Yöntemi: {{ payment_method }}
+
+📅 RANDEVU DETAYLARI:
+   Hasta: {{ patient_name }}
+   Email: {{ patient_email }}
+   Telefon: {{ patient_phone }}
+   Tarih: {{ appointment_date }}
+   Saat: {{ appointment_time }}
+
+Randevu ödemesi tamamlandığı için randevu onaylanmıştır.
+
+İyi günler dileriz!

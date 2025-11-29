@@ -13,9 +13,9 @@ Randevunuz başarıyla oluşturulmuştur!
 💳 ÖDEME BİLGİSİ:
 ÖNEMLİ: Randevunuzdan 24 saat (1 gün) önce ödeme yapmanız gerekmektedir.
 
-Ödeme Yapılması Gereken Tarih ve Saat: {{ payment_deadline_datetime }}
+Son Ödeme Tarihi: {{ payment_deadline_datetime }}
 
-Ödemenizi zamanında yapmazsanız randevunuz otomatik olarak iptal edilecektir.
+Ödemenizi zamanında tamamlamamanız durumunda, randevunuz otomatik olarak iptal edilecektir. Anlayışınız için teşekkür ederiz.
 
 Randevunuzdan 24 saat önce hatırlatma email'i alacaksınız.
 

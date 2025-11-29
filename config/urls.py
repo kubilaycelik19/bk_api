@@ -23,6 +23,9 @@ from rest_framework_simplejwt.views import ( # JWT ile ilgili view'ları import 
     TokenRefreshView, # Token yenileme view'ı
 )
 
+# iyzico callback endpoint'ini doğrudan import et (DRF router'ından bağımsız)
+from payments.views import payment_callback
+
 def health(_request):
     return JsonResponse({"status": "ok"})
 
@@ -35,8 +38,15 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), # Token yenileme endpoint'i
     # Giriş yapılan bilgilere göre yetkilendirme işlemleri yapılır.
 
+    # iyzico callback endpoint - DRF router'ından ÖNCE, tamamen public (authentication kontrolü yok)
+    # Bu endpoint iyzico'dan geldiği için authentication gerektirmez
+    # Farklı bir URL path kullanarak DRF authentication middleware'inden kaçınıyoruz
+    path('payments/callback/', payment_callback, name='payment-callback-public'),
+    
     # /api/v1/ ile başlayan tüm istekleri users.urls'e yönlendir. (Kullanıcı CRUD işlemleri için)
+    
     path('api/v1/', include('users.urls')), # 'users' uygulamasının URL'lerini dahil et. users modülü.
     path('api/v1/', include('appointments.urls')), # 'appointments' uygulamasının URL'lerini dahil et. appointments modülü.
     path('api/v1/', include('ventings.urls')), # 'ventings' uygulamasının URL'lerini dahil et.
+    path('api/v1/', include('payments.urls')), # 'payments' uygulamasının URL'lerini dahil et.
 ]
